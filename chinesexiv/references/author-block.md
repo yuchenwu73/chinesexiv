@@ -110,15 +110,57 @@ $^{4}$武汉大学测绘遥感信息工程全国重点实验室，武汉，中�
 
 ---
 
-## 7. 译后自检清单
+## 7. 中文版会比英文长 1.5–2x：默认拆行，不要硬挤一行
+
+英文原作经常用 `\quad`（= 1em）作为同一行内分隔多个作者或多个机构的间距。换成中文后，**机构译名加上中英括号对照常常是英文原文的 1.5–2 倍长**，原本舒服的一行翻完会溢出右页边距。具体表现：
+
+- 作者名行：5 个名字 + 4 个 `\quad` 在英文里勉强 fit textwidth，中译后 `\textsuperscript{}` 注脚加上 CJK 间距，最后一个名字会被切到页外。
+- 机构行：`\textsuperscript{1}短机构 \quad \textsuperscript{2}中机构 \quad \textsuperscript{3}长机构` 通常超 textwidth，第 3 个机构溢出。
+
+**翻译时默认的拆行策略**（按这个顺序选）：
+
+1. **作者名**：每行不超过 3–4 个名字。原作 5+ 名字一行的，**一律拆**为 3-3-3 或 4-3-2 等。
+2. **机构**：**每个机构占一行**（`\\` 结尾）。这是最稳的做法，永不溢出。如果机构都很短（例如 `\textsuperscript{1}清华大学 \quad \textsuperscript{2}北大`），可以两个一行；但只要有一个长机构，整列都拆成单行更安全。
+3. 个别超长的（例如「微软「AI 向善」研究实验室（Microsoft AI for Good Research Lab）」），即便单独占一行也可能撑过居中宽度——这时改成 §3-B 的「中文一行 + 英文换行另一行」。
+
+**反例（错误，会溢出）**：
+
+```latex
+\textsuperscript{1}Taylor 地理空间研究院（Taylor Geospatial） \quad
+\textsuperscript{2}慕尼黑工业大学（Technical University of Munich） \quad
+\textsuperscript{3}微软「AI 向善」研究实验室（Microsoft AI for Good Research Lab） \\
+\textsuperscript{4}艾伦人工智能研究院（Allen Institute for AI） \quad
+\textsuperscript{5}Vector 研究院（Vector Institute） \quad
+\textsuperscript{6}卡尔顿大学（Carleton University） \quad
+\textsuperscript{7}克拉克大学（Clark University）\\
+```
+
+**正例（每机构一行）**：
+
+```latex
+\textsuperscript{1}Taylor 地理空间研究院（Taylor Geospatial）\\
+\textsuperscript{2}慕尼黑工业大学（Technical University of Munich）\\
+\textsuperscript{3}微软「AI 向善」研究实验室（Microsoft AI for Good Research Lab）\\
+\textsuperscript{4}艾伦人工智能研究院（Allen Institute for AI）\\
+\textsuperscript{5}Vector 研究院（Vector Institute）\\
+\textsuperscript{6}卡尔顿大学（Carleton University）\\
+\textsuperscript{7}克拉克大学（Clark University）\\
+```
+
+**为什么 `tabular{c}` 会溢出而不是自动换行**：作者块通常包在 `\begin{tabular}{c}...\end{tabular}` 里，`tabular` 的列宽是按**最长行**取的，**不会自动换行**——一行内容超 textwidth 就直接溢出页面。所以必须人工 `\\` 切到下一行。
+
+---
+
+## 8. 译后自检清单
 
 | 检查项 | 期望 |
 |---|---|
 | `\author{}` 内是否有手写的 `\begin{center}` 或 `\centering` | 应该没有；模板会自己居中 |
 | 是否新增了 `\textit{...}` 包裹括号里的英文 | 应该没有 |
 | 「State Key Laboratory」是否还残留译为「国家重点实验室」 | 应该没有（除非明确未重组） |
-| 长机构是否会撑出右边距 | 用 PDF 渲染首页确认，必要时按 §3-B 拆行 |
+| 长机构是否会撑出右边距 | **必须**用 PDF 渲染首页 PNG 确认，必要时按 §3-B 拆行 |
+| 作者名行长度是否超过 textwidth | 名字 + `\textsuperscript{}` + `\quad` 加起来超 textwidth 必溢出，按 §7 拆行 |
 | 「同等贡献」「通讯作者」是否翻译了 | 应该翻译 |
 | 邮箱、ORCID、`^{1,2\dagger}` 等符号是否原样保留 | 应该保留 |
 
-最直接的方法：编译完成后渲染首页 PNG 看一眼，确认作者块整体居中、英文不溢出。
+**最直接的方法**：编译完成后用 PyMuPDF 渲染首页 PNG 看一眼（不是看 exit code，是真的用眼睛过一遍），确认作者块整体居中、英文不溢出、行与行之间不相互重叠。

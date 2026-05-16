@@ -4,13 +4,17 @@ ChineseXiv 第四步收尾：清理本地编译产物，保留译稿源码。
 
 会删除：
   - 任意层级下名为 `build/` 的子目录（约定为本地 xelatex 的输出目录）；
-  - 与源码同目录、扩展名属于编译中间产物（`.aux`/`.log`/`.bbl`/…）的散落文件；
+  - `build/` 内的散落编译中间产物（`.aux`/`.log`/`.bbl`/…）；
   - 旧版残留的 `.tmp_arxiv/` 目录（向后兼容）；
   - 旧版 inspect 临时报告（`inspect_*.txt`）。
 
 会保留：
   - 所有 `.tex` / `.bib` / `.cls` / `.sty` / `figs/` 资源——方便用户对照英文原文
-    与 `_zh.tex` 译稿，必要时手动重编。
+    与 `_zh.tex` 译稿，必要时手动重编；
+  - 与源码并列、由原 arXiv 源码自带的 `.bbl` 文件（许多 arXiv 论文不发 `.bib`
+    而是直接附带预生成的 `.bbl`，这种 `.bbl` 是 \\textit{源码}而不是中间产物，
+    一旦删了 main_zh.tex 引用就解析不出来）。本脚本只清理 `build/` 子目录里
+    的中间产物，不动 source 根目录的文件。
 
 用法：
   python cleanup.py <base_dir>
@@ -24,7 +28,7 @@ import sys
 # 旧版 inspect 报告文件名匹配
 INSPECT_OUTPUT_RE = re.compile(r"^inspect_.*\.txt$")
 
-# 公认的编译中间产物扩展名，整套删
+# 公认的编译中间产物扩展名，整套删——仅在 `build/` 内生效
 INTERMEDIATE_EXTS = {
     ".aux", ".log", ".out", ".toc", ".bbl", ".blg",
     ".fls", ".fdb_latexmk", ".synctex.gz", ".nav", ".snm", ".vrb",
@@ -57,21 +61,6 @@ def remove_build_dirs(root):
     return removed
 
 
-def remove_loose_intermediates(root):
-    """删除与 .tex 源码混在一起的散落编译产物。"""
-    removed = []
-    for dirpath, _dirnames, filenames in os.walk(root):
-        for fn in filenames:
-            if _has_intermediate_ext(fn):
-                p = os.path.join(dirpath, fn)
-                try:
-                    os.remove(p)
-                    removed.append(p)
-                except OSError:
-                    pass
-    return removed
-
-
 def remove_legacy_tmp(root):
     """删旧版本（基于上游 Leey21）留下的 `.tmp_arxiv/` 工作目录。"""
     legacy = os.path.join(root, ".tmp_arxiv")
@@ -99,15 +88,16 @@ def remove_inspect_outputs(base_dir):
 
 
 def cleanup(base_dir):
-    """清理入口：依次跑四步并打印日志。"""
+    """清理入口：依次跑各步并打印日志。
+
+    设计原则：宁可漏删，绝不误删。源码目录里若残留 `.aux` 这种小文件
+    用户可以手动清掉；但 `.bbl` 一旦被错删，下次重编就会出现一堆 `??`。
+    """
     base_dir = os.path.abspath(base_dir)
     total = 0
 
     for path in remove_build_dirs(base_dir):
         print(f"✅ 已删除 build 目录：{path}")
-        total += 1
-    for path in remove_loose_intermediates(base_dir):
-        print(f"✅ 已删除中间文件：{path}")
         total += 1
     for path in remove_legacy_tmp(base_dir):
         print(f"✅ 已删除旧版 .tmp_arxiv：{path}")

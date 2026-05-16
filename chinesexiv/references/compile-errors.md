@@ -27,6 +27,47 @@
 **远端编译超时 / 变慢**
 → 检查工作目录里是否混入了历史产物（尤其是无关的 PDF、`.aux`、`.log`、旧输出文件）。这些文件会被一并上传，显著拖慢远端编译，甚至导致超时。
 
+**编译成功但源码自带 `.bbl` 被误删**（重编后引用变 `??`）
+→ 不少 arXiv 论文不发 `.bib`，而是直接附带预生成的 `main.bbl`。这种 `.bbl` 是**源码**，不是中间产物。如果误删（早期 cleanup.py 会一并清理 source 根目录下的 `.bbl`），下次重编就会出现一堆 `??`。修复：从 `arxiv.org/e-print/{paper_id}` 重新下载源码，把 `main.bbl` 拷回 `source/`。
+
+## CJK 排版陷阱（仅渲染才看得出来）
+
+下面这些问题**编译 exit code = 0 也不会报错**，必须**渲染首页/相关页面到 PNG 实际看一遍**才能发现。SKILL.md 第四步的「排版自检」就是为此而存在的。
+
+**作者块溢出右边距**
+→ 中文机构名加上 `（English）` 对照常常是英文原作的 1.5–2 倍长。原作 `\quad` 串起来的一行翻完会切到页外。详见 `references/author-block.md` §7：作者名 3-3-3 一行，机构每个一行。
+
+**多列表格挤压 / 列宽不足 / 文字与边框重叠**
+→ 原作中 `m{1.10cm}` 这种窄列对英文（如 `acc / linear`）够用，但对中文（`准确率 / 线性`）方块汉字就装不下，字符会被压成「准/线」竖排或与列边框重叠。优先用 `pdflscape` 把整个表横版：
+
+```latex
+\begin{landscape}
+\begin{table}[t!]
+  \centering
+  \scriptsize
+  \setlength{\tabcolsep}{4pt}
+  \renewcommand{\arraystretch}{1.18}
+  \begin{tabularx}{\linewidth}{...更宽的列宽...}
+    ...
+  \end{tabularx}
+\end{table}
+\end{landscape}
+```
+
+`pdflscape` 通常已经在原作 preamble 里 `\usepackage{pdflscape}`，直接用即可；横版后 `\linewidth` 变为页面长边（约 23 cm 而非 16 cm），有充裕空间放中文。同时把窄列从 `m{0.55cm}` 这类拉宽到 `m{0.8cm}`，把 X 弹性列保留给最长的「描述」列。
+
+**wrapfigure 中文 caption 溢出 / 与正文重叠**
+→ `\begin{wrapfigure}{r}{0.45\linewidth}` 把图限制在半幅宽度，caption 自然也在半幅宽内；中文段落比英文长，caption 撑高了 wrapfigure 就会和正文相互覆盖。修复优先级：
+1. 把 caption 内的加粗段精简到一句话；
+2. 把 wrapfigure 改为普通 `figure[t]`（不强求文字绕排）；
+3. 加大 `wrapfigure` 宽度到 `0.5\linewidth`。
+
+**长 caption 内 `（共 $87$ 个）` 这种 inline math**
+→ 在 xeCJK 下，数字夹在中文标点 `（）` 中间偶尔会触发奇怪的换行点；如果发现 caption 被切断，把 `$87$` 换成纯文本 `87` 试一试，并去掉前后多余空格。
+
+**编译看似成功但实际 silent overflow**
+→ TeX 默认对 `Overfull \hbox` 只打 warning 不报错。建议每次编译后 `grep "Overfull" build/main_zh.log` 看是否有 hbox 超 50pt 的项；超过的位置就是潜在的溢出页面，必须渲染对应页 PNG 复核。
+
 ## 读取错误日志
 
 编译失败时，服务端返回含完整日志的 JSON。找到以 `!` 开头的行定位致命错误：

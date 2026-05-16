@@ -30,7 +30,34 @@ python3 {SKILL_DIR}/scripts/download.py "{PAPER_ID}" "$OUTPUT_DIR/source"
 
 `download.py` 一步完成：下载源码 → 解压 → 递归查找 `.tex` → 定位主文件 → 提取标题 → 把主文件以及它通过 `\input{}` / `\include{}` 引用的子 `.tex` 文件都复制为 `_zh.tex` 副本，并把 zh 主文件里的 input 引用一并改写到 `_zh` 版本。
 
-`OUTPUT_DIR` 为用户指定的保存路径，未指定则为当前目录；源码统一落在 `$OUTPUT_DIR/source/`（不再使用 `.tmp_arxiv` 之类的临时名）。
+### `OUTPUT_DIR` 的命名约定
+
+用户通常给出**父目录**（例如 `~/papers`、`~/projects/paper-reading`）。约定每篇论文落在一个**独立子目录**下，命名为 `{paperid}-{中文标题}`：
+
+```
+~/projects/paper-reading/
+├── 1706.03762-你所需要的只是Attention/
+│   ├── source/
+│   └── 你所需要的只是Attention.pdf
+└── 2605.12678-无人知晓地理空间基础模型的最优水平/
+    ├── source/
+    └── 无人知晓地理空间基础模型的最优水平.pdf
+```
+
+由于中文标题在翻译完成前不可知，按下列两阶段处理：
+
+1. **下载阶段**：先用 `$OUTPUT_DIR = $PARENT/$PAPER_ID` 占位（**只用 arXiv ID，无标题后缀**）。
+2. **翻译完成、确定 `\title{}` 中文标题后**：把整个目录从 `$PARENT/$PAPER_ID` 重命名为 `$PARENT/$PAPER_ID-$PDF_NAME_ZH`，再调用 `compile.py` 把 PDF 写到新目录里：
+
+   ```bash
+   mv "$PARENT/$PAPER_ID" "$PARENT/$PAPER_ID-$PDF_NAME_ZH"
+   OUTPUT_DIR="$PARENT/$PAPER_ID-$PDF_NAME_ZH"
+   WORK_DIR="$OUTPUT_DIR/source"
+   ```
+
+若用户只翻一篇论文，没有「父目录」语义（例如直接说「放到 `~/Desktop`」），保持 `$OUTPUT_DIR = ~/Desktop/$PAPER_ID-$PDF_NAME_ZH` 即可。**不要把多篇论文的 `source/` 直接堆在同一个父目录里**——会互相覆盖。
+
+源码统一落在 `$OUTPUT_DIR/source/`（不再使用 `.tmp_arxiv` 之类的临时名）。
 
 无源码（仅 PDF）则告知用户跳过。
 
@@ -83,7 +110,7 @@ python3 {SKILL_DIR}/scripts/inspect_tex.py scan "$WORK_DIR" "$MAIN_TEX_ZH" body
 
 ## 第四步：编译与清理
 
-确定中文 PDF 文件名（基于翻译后的 `\title{}` 自然命名，与 `\title{}` 一致或更精炼），赋值给 `PDF_NAME_ZH`。最终 PDF 直接落在 `$OUTPUT_DIR/$PDF_NAME_ZH.pdf`，与 `source/` 同级。
+**目录最终命名**：在编译前，按第二步的命名约定，把 `$OUTPUT_DIR` 从 `$PARENT/$PAPER_ID` 重命名为 `$PARENT/$PAPER_ID-$PDF_NAME_ZH`，使整篇论文（含 `source/` 子目录与 PDF）都落在最终目录里。`$PDF_NAME_ZH` 基于翻译后的 `\title{}` 自然命名，与 `\title{}` 一致或更精炼。最终 PDF 直接落在 `$OUTPUT_DIR/$PDF_NAME_ZH.pdf`，与 `source/` 同级。
 
 ```bash
 python3 {SKILL_DIR}/scripts/compile.py "$WORK_DIR" "$MAIN_TEX_ZH" "$OUTPUT_DIR/$PDF_NAME_ZH.pdf" --engine auto
@@ -115,13 +142,37 @@ xelatex -output-directory=build "$MAIN_TEX_ZH"
 cp "build/${MAIN_TEX_ZH%.tex}.pdf" "../$PDF_NAME_ZH.pdf"
 ```
 
-编译成功后清理（删除 `source/build/` 与 inspect 临时文件，保留英文原文与翻译稿源码以便对照与手动重编）：
+### 排版自检（强制）
+
+编译成功后**必须**渲染至少首页与含「作者块」「宽表格」「wrapfigure」的页面，确认中文版排版未崩坏。**不能凭借** exit code 0 就认定编译成功——CJK 与英文模板互动经常导致内容溢出页边距、文字相互重叠这类**仅渲染才能看出来的问题**。
+
+```python
+import fitz  # PyMuPDF
+doc = fitz.open("$OUTPUT_DIR/$PDF_NAME_ZH.pdf")
+for i in [0, ...]:  # 首页必看；含作者块、长 caption、多列表格的页都要看
+    doc[i].get_pixmap(dpi=200).save(f"/tmp/check_p{i+1}.png")
+```
+
+然后用 Read 工具把这几张 PNG 实际过一遍眼睛，确认：
+
+- [ ] **作者块** 没有溢出右边距（中文机构名通常比英文长 1.5–2x，原作 5 个名字 + `\quad` 一行的排版换成中译后常常溢出；按 `references/author-block.md` 调整）。
+- [ ] **多列表格** 没有任何单元格内文字被压成竖排或与边框重叠（中文字符高且方，原作 `m{1.10cm}` 这种窄列在中译后多半装不下；通常需要 `\begin{landscape}` 或加宽列；参见 `references/compile-errors.md` 的「宽表挤压 / 列宽不足」）。
+- [ ] **wrapfigure / sidefig 的 caption** 没有被切断或与正文重叠。
+- [ ] **图注与表注** 完整可读，加粗段没断行到奇怪位置。
+
+发现问题就回到译稿上调整 LaTeX 结构（不是改翻译文字），然后重编。直到目视确认没有崩坏，才算「编译成功」。
+
+### 清理中间产物
+
+编译并目视确认后，再清理（删除 `source/build/` 与 inspect 临时文件，保留英文原文与翻译稿源码以便对照与手动重编）：
 
 ```bash
 python3 {SKILL_DIR}/scripts/cleanup.py "$OUTPUT_DIR"
 ```
 
-多篇论文时，所有论文都完成 PDF 编译并保存后再进行中间文件清理。
+cleanup.py **只清 `build/` 子目录内的中间产物**，不动 `source/` 根目录的任何文件——很多 arXiv 源码会直接附带预生成的 `main.bbl`（论文没发 `.bib`），这种 `.bbl` 属于原始源码，删了下次重编会出现一堆 `??`。
+
+多篇论文时，所有论文都完成 PDF 编译并目视确认后再进行中间文件清理。
 
 最后告知用户：
 - PDF 路径：`$OUTPUT_DIR/$PDF_NAME_ZH.pdf`
@@ -130,5 +181,5 @@ python3 {SKILL_DIR}/scripts/cleanup.py "$OUTPUT_DIR"
 ---
 
 ## 参考文件
-- `references/compile-errors.md`：编译常见错误及修复方法
-- `references/author-block.md`：作者/机构区的排版与译名规范（短机构内联、长机构换行、`\textit` 禁用规则、「全国/国家重点实验室」译法）。翻译机构/作者块前先读这个。
+- `references/compile-errors.md`：编译常见错误、CJK 排版陷阱（宽表挤压、wrapfigure caption 溢出、`.bbl` 误删等）及修复方法。
+- `references/author-block.md`：作者/机构区的排版与译名规范（短机构内联、长机构换行、`\textit` 禁用规则、「全国/国家重点实验室」译法、**中文版机构名长度是英文 1.5–2x 必须默认拆行**）。翻译机构/作者块前先读这个。
