@@ -215,6 +215,32 @@ def _zh_sibling(rel_path):
     return f"{base}_zh{ext or '.tex'}"
 
 
+def _copy_main_companion(work_dir, main_rel, ext):
+    """复制与主文件同名、扩展名为 `ext` 的伴随文件到 `_zh` 副本旁。
+
+    场景：很多 arXiv 论文不发 .bib，而是直接附带一份预生成的 `main.bbl`。当我们把
+    `main.tex` 复制为 `main_zh.tex` 后，jobname 变成 `main_zh`，LaTeX 在
+    `\\bibliography{...}` 处会寻找 `<jobname>.bbl`，即 `main_zh.bbl`——根目录没有这个
+    文件名，引用就全是 `??`。把 `main.bbl` 一并复制为 `main_zh.bbl`，无论用哪个工具
+    编译（chinesexiv 自己的 compile.py、LaTeX Workshop recipe、命令行 xelatex
+    都能跑通）。
+
+    返回新建副本的相对路径；若源文件不存在或与目标同路径则返回 None。
+    """
+    src_rel = os.path.splitext(main_rel)[0] + ext
+    src_path = os.path.join(work_dir, src_rel)
+    if not os.path.isfile(src_path):
+        return None
+    zh_main_rel = _zh_sibling(main_rel)
+    dst_rel = os.path.splitext(zh_main_rel)[0] + ext
+    dst_path = os.path.join(work_dir, dst_rel)
+    if os.path.realpath(src_path) == os.path.realpath(dst_path):
+        return None
+    os.makedirs(os.path.dirname(dst_path) or work_dir, exist_ok=True)
+    shutil.copy2(src_path, dst_path)
+    return dst_rel
+
+
 def prepare_translation_copy(work_dir, main_rel):
     r"""为翻译准备 `_zh.tex` 副本，并改写中文主文件里的 input/include 引用。
 
@@ -222,6 +248,8 @@ def prepare_translation_copy(work_dir, main_rel):
       - 把主 .tex 复制为 `<name>_zh.tex`；
       - 解析主文件里的 `\input{x}` / `\include{x}`，逐个把 `x.tex` 也复制为 `x_zh.tex`，
         并在中文主文件里把 `{x}` 改写为 `{x_zh}`（不带 .tex 后缀，与 LaTeX 习惯一致）；
+      - 把与主文件同名的 `.bbl`（arXiv 论文常见的预生成参考文献）也复制成 `_zh.bbl`，
+        使中文版 jobname 对应的辅助文件能被 LaTeX 找到；
       - 这样英文原文整套保持只读，翻译只动 `_zh` 系列。
 
     返回值：中文主文件相对 work_dir 的路径。
@@ -260,6 +288,12 @@ def prepare_translation_copy(work_dir, main_rel):
     main_zh_path = os.path.join(work_dir, main_zh_rel)
     with open(main_zh_path, "w", encoding="utf-8") as f:
         f.write(rewritten)
+
+    # 与主文件同名的辅助产物（最常见的是 .bbl，少数项目也带 .ind/.glo 等）一并复制副本，
+    # 避免 jobname 改变导致 LaTeX 找不到这些文件。
+    for ext in (".bbl",):
+        _copy_main_companion(work_dir, main_rel, ext)
+
     return main_zh_rel
 
 
