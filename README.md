@@ -155,6 +155,7 @@ chinesexiv/
 │   │   └── cleanup.py           # 删 build/ 与中间产物，保留 _zh.tex 源码
 │   └── references/
 │       ├── table-overflow.md     # 表格与中文重叠的诊断 + \resizebox 修复范式
+│       ├── framed-content.md    # 附录 tcolorbox / lstlisting 的排版基线与溢出修复
 │       ├── compile-errors.md    # 编译错误速查
 │       └── author-block.md      # 作者/机构区排版与译名规范
 ├── assets/                      # README 展示图
