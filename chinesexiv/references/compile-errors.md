@@ -63,6 +63,9 @@
 2. 把 wrapfigure 改为普通 `figure[t]`（不强求文字绕排）；
 3. 加大 `wrapfigure` 宽度到 `0.5\linewidth`。
 
+**附录里 tcolorbox + lstlisting 冲出右边距**
+→ 不是 box 的问题，是 box 内 `lstlisting` 默认 `breaklines=false` 导致长中文整行不断行。preamble 加 `\lstset{breaklines=true, ...}` + `\tcbset{promptstyle/.style={...}}` 就一次解决排版 + 美观。完整诊断与脚本见 `references/framed-content.md`。
+
 **长 caption 内 `（共 $87$ 个）` 这种 inline math**
 → 在 xeCJK 下，数字夹在中文标点 `（）` 中间偶尔会触发奇怪的换行点；如果发现 caption 被切断，把 `$87$` 换成纯文本 `87` 试一试，并去掉前后多余空格。
 

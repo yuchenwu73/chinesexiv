@@ -209,5 +209,6 @@ cleanup.py **只清 `build/` 子目录内的中间产物**，不动 `source/` �
 
 ## 参考文件
 - `references/table-overflow.md`：**表格与中文重叠的诊断 + 修复范式**——为什么不能"一刀切缩小所有表"、怎么用 `Overfull \hbox` 日志精确定位、怎么用 `\resizebox{\linewidth}{!}{...}` 批量修、二级手段（`\tabcolsep` / `\arraystretch` / 表头精简 / 横版 / 拆表）顺序与边界。**每篇必跑的最后一道工序，读这个。**
+- `references/framed-content.md`：**附录里 `tcolorbox`/`lstlisting` 的诊断 + 排版基线**——为什么中文长行会冲出框右边、为什么默认 box 看起来很糙、preamble 里 `\lstset{breaklines=true}` + `\tcbset{promptstyle/.style={...}}` 一处统一所有 box 风格、批量把 inline 选项压成 `promptstyle` 的脚本。**论文有 GPT 提示词/JSON 模板/对话样例附录时读这个。**
 - `references/compile-errors.md`：编译常见错误、CJK 排版陷阱（宽表挤压、wrapfigure caption 溢出、`.bbl` 误删等）及修复方法。
 - `references/author-block.md`：作者/机构区的排版与译名规范（短机构内联、长机构换行、`\textit` 禁用规则、「全国/国家重点实验室」译法、**中文版机构名长度是英文 1.5–2x 必须默认拆行**）。翻译机构/作者块前先读这个。
