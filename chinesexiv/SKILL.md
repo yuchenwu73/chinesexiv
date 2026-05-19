@@ -137,6 +137,8 @@ python3 {SKILL_DIR}/scripts/compile.py "$WORK_DIR" "$MAIN_TEX_ZH" "$OUTPUT_DIR/$
 
 编译失败时：读取 stderr 中的错误日志，参考 `references/compile-errors.md` 修复源码，重新编译（最多重试 2 次）。
 
+**编译成功不代表排版通过**：xelatex exit 0 但日志里 `Overfull \hbox` 经常是中英换算带来的表格/段落溢出，目视才能发现。**强制**执行下一步「表格溢出扫描」。
+
 **本地手动重编（应急）：** `source/build/` 子目录是本地 xelatex 中间产物的约定输出位置。手动重编命令：
 
 ```bash
@@ -147,6 +149,25 @@ xelatex -output-directory=build "$MAIN_TEX_ZH"
 xelatex -output-directory=build "$MAIN_TEX_ZH"
 cp "build/${MAIN_TEX_ZH%.tex}.pdf" "../$PDF_NAME_ZH.pdf"
 ```
+
+### 表格溢出扫描（强制，**先于目视**做）
+
+中文方块字宽度约为英文比例字体的 1.5–2 倍。原作按英文宽度调好的 `\small / \tabcolsep` 在中文下普遍宽度溢出 5–20%，**不修就一定出现表格压到对面栏中文上**。
+
+```bash
+grep -E "Overfull \\\\hbox \([0-9]+\.[0-9]+pt" "$WORK_DIR/build/${MAIN_TEX_ZH%.tex}.log" \
+    | awk -F'[()]' '$2+0 > 5 {print}'
+```
+
+每条 `Overfull \hbox (XX.XXpt too wide) in paragraph at lines AAA--BBB`：
+
+1. 把 `AAA--BBB` 行号区间映射到 `$MAIN_TEX_ZH` 里的某个外层 `\begin{tabular}` 块（注意：行首才是外层；带 `[c]{@{}c@{}}` 出现在行中的是 `\makecell` 内嵌表头，**不要包**）。
+2. 用 `\resizebox{\linewidth}{!}{ ... }` 把整个外层 `\begin{tabular}...\end{tabular}` 块包住。`\linewidth` 在 `table` 里等于栏宽、在 `table*` 里等于页宽，**一段代码窄表宽表通吃**。
+3. 重新编译。第一轮过后 `> 5pt` 的 Overfull 应该接近归零。
+
+为什么是 `\resizebox{\linewidth}` 而不是「全文 `\scriptsize`」「手工调列宽」：它**只对真正超宽的表起作用、按比例保留作者意图、且小表不被强行拉宽**——可以稳定地批量自动化，不必逐表手工权衡。完整方法论与边界情况见 `references/table-overflow.md`。
+
+剩余「溢出 > 20%」或「`\resizebox` 后字号过小」的少数情况，按 `references/table-overflow.md` 的二级手段顺序处理（先压 `\tabcolsep`，再压 `\arraystretch`，再精简表头，最后才考虑横版或拆表）。
 
 ### 排版自检（强制）
 
@@ -187,5 +208,6 @@ cleanup.py **只清 `build/` 子目录内的中间产物**，不动 `source/` �
 ---
 
 ## 参考文件
+- `references/table-overflow.md`：**表格与中文重叠的诊断 + 修复范式**——为什么不能"一刀切缩小所有表"、怎么用 `Overfull \hbox` 日志精确定位、怎么用 `\resizebox{\linewidth}{!}{...}` 批量修、二级手段（`\tabcolsep` / `\arraystretch` / 表头精简 / 横版 / 拆表）顺序与边界。**每篇必跑的最后一道工序，读这个。**
 - `references/compile-errors.md`：编译常见错误、CJK 排版陷阱（宽表挤压、wrapfigure caption 溢出、`.bbl` 误删等）及修复方法。
 - `references/author-block.md`：作者/机构区的排版与译名规范（短机构内联、长机构换行、`\textit` 禁用规则、「全国/国家重点实验室」译法、**中文版机构名长度是英文 1.5–2x 必须默认拆行**）。翻译机构/作者块前先读这个。
