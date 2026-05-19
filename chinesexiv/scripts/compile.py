@@ -74,11 +74,9 @@ _AUTO_CJK_PREAMBLE = "\n".join(
         r"\usepackage{fontspec}",
         r"\usepackage{xeCJK}",
         r"\setCJKmainfont{Noto Serif CJK SC}",
-        r"% --- 中文排版舒适度（行距 + 中英文间距 + caption 呼吸）---",
+        r"% --- 中文排版舒适度（行距 + 中英文间距）---",
         r"\xeCJKsetup{CJKecglue={\hskip 0.15em plus 0.05em minus 0.04em}}",
         r"\linespread{1.25}\selectfont",
-        r"\setlength{\abovecaptionskip}{14pt plus 2pt minus 2pt}",
-        r"\setlength{\belowcaptionskip}{6pt plus 1pt minus 1pt}",
         "",
     )
 )
