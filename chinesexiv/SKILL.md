@@ -130,7 +130,7 @@ python3 {SKILL_DIR}/scripts/compile.py "$WORK_DIR" "$MAIN_TEX_ZH" "$OUTPUT_DIR/$
 用户可以在调用时通过自然语言指定（例如「用在线编译」「强制本地编译」），否则一律传 `--engine auto`。
 
 `compile.py` 会统一完成以下编译前处理（两种引擎共用）：
-- 默认使用 `xelatex` + `xeCJK` 编译栈；若检测到中文且主文件尚无 CJK 支持，自动注入 `fontspec` / `xeCJK` / `\setCJKmainfont{Noto Serif CJK SC}`；
+- 默认使用 `xelatex` + `xeCJK` 编译栈；若检测到中文且主文件尚无 CJK 支持，自动注入 `fontspec` / `xeCJK` / `\setCJKmainfont{Noto Serif CJK SC}`，并一并注入 `\linespread{1.25}`、xeCJK 中英文 glue 调优，以及 caption 与浮动体之间的呼吸（`\abovecaptionskip=14pt` / `\belowcaptionskip=6pt`，约 Word 0.5 行）；
 - 自动注释掉与 Unicode 编译栈冲突的 `fontenc` / `inputenc`；
 - 自动识别 `bibtex` / `biber` / 已内置 `.bbl` 的情况；
 - 自动忽略常见编译中间文件、`build/` 子目录以及未被源码引用的游离 PDF（在线引擎下避免把无关产物上传；本地引擎下避免污染源码目录）。

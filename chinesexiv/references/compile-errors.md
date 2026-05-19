@@ -66,6 +66,16 @@
 **长 caption 内 `（共 $87$ 个）` 这种 inline math**
 → 在 xeCJK 下，数字夹在中文标点 `（）` 中间偶尔会触发奇怪的换行点；如果发现 caption 被切断，把 `$87$` 换成纯文本 `87` 试一试，并去掉前后多余空格。
 
+**Caption 和浮动体（图/表）紧贴在一起**
+→ 默认 `\abovecaptionskip=10pt, \belowcaptionskip=0pt` 是按英文字号设计的；中文方块字本身就把图表内的行抬高了，10pt 的间距视觉上会让 caption 像粘在图表上。
+→ `compile.py` 在自动注入 CJK 栈时一并注入：
+```latex
+\setlength{\abovecaptionskip}{14pt plus 2pt minus 2pt}
+\setlength{\belowcaptionskip}{6pt plus 1pt minus 1pt}
+```
+约等于 Word 里的「caption 前/后空 0.5 行」。caption 在上或在下都自由——`\abovecaptionskip` 管「图/表到下方 caption」的距离，`\belowcaptionskip` 管「上方 caption 到图/表」的距离。
+→ 如果论文已经自带 CJK 栈（compile.py 不会强行注入），把这两行手动加到 `\begin{document}` 之前。
+
 **编译看似成功但实际 silent overflow**
 → TeX 默认对 `Overfull \hbox` 只打 warning 不报错。建议每次编译后 `grep "Overfull" build/main_zh.log` 看是否有 hbox 超 50pt 的项；超过的位置就是潜在的溢出页面，必须渲染对应页 PNG 复核。
 

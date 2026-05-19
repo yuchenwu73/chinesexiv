@@ -154,6 +154,7 @@ chinesexiv/
 │   │   ├── compile.py           # 本地 xelatex / 在线编译双引擎
 │   │   └── cleanup.py           # 删 build/ 与中间产物，保留 _zh.tex 源码
 │   └── references/
+│       ├── table-overflow.md     # 表格与中文重叠的诊断 + \resizebox 修复范式
 │       ├── compile-errors.md    # 编译错误速查
 │       └── author-block.md      # 作者/机构区排版与译名规范
 ├── assets/                      # README 展示图
