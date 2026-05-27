@@ -183,7 +183,7 @@ for i in [0, ...]:  # 首页必看；含作者块、长 caption、多列表格�
 然后用 Read 工具把这几张 PNG 实际过一遍眼睛，确认：
 
 - [ ] **作者块** 没有溢出右边距（中文机构名通常比英文长 1.5–2x，原作 5 个名字 + `\quad` 一行的排版换成中译后常常溢出；按 `references/author-block.md` 调整）。
-- [ ] **多列表格** 没有任何单元格内文字被压成竖排、数字互相粘连或与边框重叠（中文字符高且方，原作 `m{1.10cm}` / 13 列 benchmark 表在中译后多半装不下；日志无严重 Overfull 也可能视觉失败，按 `references/table-overflow.md` 的“视觉失败但日志干净”范式处理，必要时用 `pdflscape` 横向页）。
+- [ ] **多列表格** 没有任何单元格内文字被压成竖排、数字互相粘连或与边框重叠（中文字符高且方，原作 `m{1.10cm}` / 13 列 benchmark 表在中译后多半装不下；日志无严重 Overfull 也可能视觉失败，按 `references/table-overflow.md` 的“视觉失败但日志干净”范式处理：**先试竖版紧凑方案并渲染确认**，只有竖版仍不可读或字号低于底线时，才用 `pdflscape` 横向页）。
 - [ ] **wrapfigure / wraptable / sidefig** 没有被切断、没有与正文或相邻 figure 重叠；若 wraptable 与右侧图/双栏浮动互相压住，优先改为普通 `table` 或移动浮动体，不要硬留 wrap。
 - [ ] **tcolorbox / lstlisting / prompt example** 内容在框内完整可读；自然语言提示词已经翻译，JSON key / XML tag / placeholder 等机器可读 token 保留；统一使用 `promptstyle`，避免每个框各写一套选项。
 - [ ] **图注与表注** 完整可读，加粗段没断行到奇怪位置。

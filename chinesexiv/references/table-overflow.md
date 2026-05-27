@@ -111,7 +111,32 @@ grep -E "Overfull \\\\hbox \([0-9]+\.[0-9]+pt" "$LOG" | awk -F'[()]' '$2+0 > 5 {
 
 这类问题不是“编译溢出”，而是**视觉可读性溢出**，必须用渲染页判断。常见于 MMBench / ScreenSpot 这类 12–13 个数值列的大 benchmark 表。
 
-首选修法：把整张宽表放到横向页，而不是继续把字号压小：
+先不要默认横向页。13 列 benchmark 表经常“看起来很宽”，但在单页竖版里仍可能通过紧凑列设计保持可读。先做一个临时副本，尝试竖版紧凑方案：
+
+```latex
+\begin{table}[p]
+  \centering
+  \tiny
+  \renewcommand{\arraystretch}{0.88}
+  \setlength{\tabcolsep}{1.0pt}
+  \caption{...}
+  \begin{tabularx}{\linewidth}{
+    @{}>{\raggedright\arraybackslash}p{0.255\linewidth}
+    | *{12}{>{\centering\arraybackslash}X}
+    | >{\centering\arraybackslash}p{0.042\linewidth}@{}}
+  ...
+  \end{tabularx}
+\end{table}
+```
+
+竖版通过标准：
+
+1. 编译日志没有 `> 5pt` 的严重 `Overfull \hbox`；
+2. 渲染页里数字列之间有稳定空隙，读者不需要猜列边界；
+3. 模型名列允许自然换行，但不能把整行撑得过高；
+4. 表体实际字号不要低于约 5pt；若中位数字字号约 6pt，通常仍可接受。
+
+如果竖版紧凑方案仍然只是“勉强没越界”、列边界难辨，或为了塞下表格必须继续压到 `\tiny` 以下，再把整张宽表放到横向页：
 
 ```latex
 \usepackage{pdflscape}  % preamble
@@ -137,7 +162,7 @@ grep -E "Overfull \\\\hbox \([0-9]+\.[0-9]+pt" "$LOG" | awk -F'[()]' '$2+0 > 5 {
 3. 表头尽量译成短词：`Bas.` → `基础`，`Adv.` → `进阶`，`Avg.` → `平均`，`Text/Icon` → `文本/图标`。
 4. 横向页后必须渲染该页，确认数字之间有稳定空隙、列分组线清楚、caption 不压表。
 
-判断标准：如果 `\resizebox{\linewidth}{!}{...}` 后仍然只是“勉强没越界”，但读者需要猜列边界，就应升级为横向页。
+判断标准：竖版优先；横向页是可读性兜底，不是默认答案。如果 `\resizebox{\linewidth}{!}{...}` 或上面的竖版紧凑方案后仍然只是“勉强没越界”，但读者需要猜列边界，就应升级为横向页。
 
 ---
 
