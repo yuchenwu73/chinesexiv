@@ -118,6 +118,52 @@ p.write_text(new_text)
 
 ---
 
+## 翻译边界：prompt 模板不是“代码本体”
+
+LLM/agent 论文的附录常把系统提示词、数据清洗提示词、动作空间说明、JSON 输出格式放进 `tcolorbox`。这些内容虽然看起来像 prompt/code block，但其中大部分是**自然语言论文内容**，默认必须翻译。
+
+处理规则：
+
+- 翻译：任务说明、角色说明、输入/输出解释、步骤说明、动作描述、表格表头、示例中的自然语言目标。
+- 保留：JSON key、API/action name、XML tag、占位符、变量名、文件名、URL，例如 `action_type`、`open_app`、`<tool_call>`、`<instruction_here>`、`{goal}`。
+- 示例 JSON 可以保留 key 和结构，但 value 里的自然语言描述可以中译，例如 `"target":"blue circle button at top-right"` → `"target":"右上角蓝色圆形按钮"`。
+- box 标题也要中译，例如 `SFT Training Example` → `SFT 训练示例`，`Prompt for Instruction Refinement` → `指令精炼提示词`。
+
+反例：把整个 tcolorbox 说成“训练 prompt 按原样保留以保证完整性”。这会让附录大段英文“没有反应”，不符合全文中文 PDF 的目标。正确做法是保留机器可读 token，翻译可读说明文本。
+
+---
+
+## tcolorbox 基线：纯文本 prompt 也要统一样式
+
+即使 box 内没有 `lstlisting`，也建议在 preamble 定义统一样式，然后所有 prompt box 使用：
+
+```latex
+\tcbset{
+  promptstyle/.style={
+    breakable,
+    colback=black!3,
+    colframe=black!65,
+    coltitle=white,
+    colbacktitle=black!70,
+    fonttitle=\bfseries,
+    boxrule=0.5pt,
+    arc=1mm,
+    left=2mm,right=2mm,top=1mm,bottom=1mm,
+    before skip=8pt,after skip=8pt,
+  }
+}
+```
+
+然后写成：
+
+```latex
+\begin{tcolorbox}[promptstyle,title=指令精炼提示词]
+...
+\end{tcolorbox}
+```
+
+好处是：标题条、灰底、内边距、跨页行为全部一致；后续如果发现框太挤，只改 `promptstyle` 一处即可。
+
 ## 边界情况
 
 **A. `lstlisting` 里有缩进/对齐结构**（如 JSON 数据样例）

@@ -101,6 +101,70 @@ grep -E "Overfull \\\\hbox \([0-9]+\.[0-9]+pt" "$LOG" | awk -F'[()]' '$2+0 > 5 {
 
 ---
 
+## 视觉失败但日志干净：13 列 benchmark 表的处理
+
+有些大表在日志里只剩 `< 5pt` 的轻微 `Overfull`，但渲染后仍然明显失败：
+
+- `Bas./Adv.`、`Text/Icon` 这类子表头贴在一起；
+- 多个数字之间几乎没有空隙，看起来像 `43.936.8`；
+- 表格没有越出页边，但**读者已经无法可靠区分列**。
+
+这类问题不是“编译溢出”，而是**视觉可读性溢出**，必须用渲染页判断。常见于 MMBench / ScreenSpot 这类 12–13 个数值列的大 benchmark 表。
+
+首选修法：把整张宽表放到横向页，而不是继续把字号压小：
+
+```latex
+\usepackage{pdflscape}  % preamble
+
+\begin{landscape}
+\begin{table}[p]
+  \centering
+  \scriptsize
+  \renewcommand{\arraystretch}{0.94}
+  \setlength{\tabcolsep}{3.2pt}
+  \caption{...}
+  \begin{tabularx}{\linewidth}{l|*{12}{>{\centering\arraybackslash}X}|c}
+  ...
+  \end{tabularx}
+\end{table}
+\end{landscape}
+```
+
+注意点：
+
+1. 横向页里用 `table` + `[p]`，不要再用 `table*`；横向页本身已经给了整页宽度。
+2. 表体宽度用 `\linewidth`，不要写死 `\textwidth`，这样旋转后能吃到横向页宽。
+3. 表头尽量译成短词：`Bas.` → `基础`，`Adv.` → `进阶`，`Avg.` → `平均`，`Text/Icon` → `文本/图标`。
+4. 横向页后必须渲染该页，确认数字之间有稳定空隙、列分组线清楚、caption 不压表。
+
+判断标准：如果 `\resizebox{\linewidth}{!}{...}` 后仍然只是“勉强没越界”，但读者需要猜列边界，就应升级为横向页。
+
+---
+
+## wraptable 与图/正文重叠：不要硬留 wrap
+
+`wraptable` / `wrapfigure` 对浮动体位置很敏感。中文变长后，原本半栏宽的小表可能向下侵入后续 figure，或与右侧 minipage 图互相压住。症状是：表 caption 被挤成竖排、表格骑到图片上、右栏图压住表格。
+
+修法顺序：
+
+1. 若表格只是稍宽，先给外层 `tabular` 加 `\resizebox{\linewidth}{!}{...}`。
+2. 若仍与后续图或正文抢空间，**把 `wraptable` 改成普通 `table`**：
+
+```latex
+\begin{table}[!htbp]
+  \centering
+  \small
+  \caption{...}
+  \begin{tabular}{...}
+  ...
+  \end{tabular}
+\end{table}
+```
+
+3. 重新编译并渲染该页与下一页，确认表、图、正文不再重叠。
+
+不要为了保留原文环绕效果而继续加负 `\vspace`。中文译稿优先保证可读和不重叠；环绕只是版面优化，不是语义。
+
 ## 最后一步：视觉复核（必做，不能省）
 
 `grep Overfull` 只看宽度，**不看相对位置**。下面这些问题日志里看不出，必须渲染：
