@@ -9,16 +9,22 @@ ChineseXiv 第二步：拉取 arXiv 源码并准备翻译副本。
   4. 通过 arXiv API（失败则回落 abs 网页）抓论文英文标题，用作 PDF 备用文件名；
   5. 把主文件以及它通过 `\input{}` / `\include{}` 引用的子 .tex 复制为 `_zh.tex` 副本，
      并改写中文主文件里的 input 引用指向 `_zh` 版本——
-     这样英文原文文件原样不动，模型只会在 `_zh` 副本上做翻译。
+     这样英文原文文件原样不动，模型只会在 `_zh` 副本上做翻译；
+  6. 直接下载 arXiv 官方已编译的英文 PDF，按英文标题命名后落在 source/ 的父目录
+     （即 $OUTPUT_DIR）里，和稍后生成的中文译稿 PDF 并排存放——保证「英文原文 + 中文
+     译文」始终同时在论文文件夹里。拿不到官方 PDF 时返回空，由上层回落到用 compile.py
+     编译英文 MAIN_TEX。
 
 用法：
-  python download.py <paper_id> <work_dir>
+  python download.py <paper_id> <work_dir>      # work_dir 约定为 $OUTPUT_DIR/source
 
-向 stdout 输出四行 shell 变量赋值（供调用方 eval 或解析）：
+向 stdout 输出六行 shell 变量赋值（供调用方 eval 或解析）：
   WORK_DIR=<源码目录绝对路径>
   MAIN_TEX=<英文主文件相对路径，只读>
   MAIN_TEX_ZH=<中文翻译主文件相对路径>
   PDF_NAME=<论文英文标题，仅供生成 PDF 备用名>
+  PDF_NAME_EN=<英文原文 PDF 的跨平台安全文件名（冒号等已替换）>
+  PDF_EN=<已下载的英文 PDF 绝对路径；下载失败则为空字符串>
 """
 import gzip
 import html
@@ -202,6 +208,58 @@ def pdf_name_from_title(title, fallback, max_len=240):
     return s
 
 
+def pdf_name_en_from_title(title, fallback, max_len=240):
+    r"""英文原文 PDF 的文件名：在 pdf_name_from_title 基础上做跨平台加固 + 去空格。
+
+    命名规则（与中文目录/PDF 命名同构，且在 Windows、网盘、Git、URL 下都安全）：
+      - 半角/全角冒号 `:`/`：`（连同周围空格）→ `_`：视作「方法名 ↔ 副标题」的分隔，
+        与中文把 `：` 换成 `_` 一致，例如 `GeoGround: A Unified...` → `GeoGround_A_Unified_...`；
+      - 空格 → `_`：文件名不保留空格，免去 shell / URL / Git 里反复转义的麻烦；
+      - 标题里**原有**的连字符 `-` 原样保留（如 `Vision-Language`）——它与代表空格的 `_`
+        区分开，因此英文 PDF 名大体可还原出原标题；
+      - 其余 Windows/网盘不接受的字符 `<>"|?*` → `_`（`/`、`\` 已在 pdf_name_from_title 里转 `-`）。
+    最终形如 `GeoGround_A_Unified_Large_Vision-Language_Model_for_Remote_Sensing_Visual_Grounding`。
+    """
+    name = pdf_name_from_title(title, fallback, max_len=max_len)
+    name = re.sub(r"\s*[:：]\s*", "_", name)  # 冒号（含周围空格）压成单个 _
+    for ch in '<>"|?*':
+        name = name.replace(ch, "_")
+    name = re.sub(r"\s+", "_", name)          # 其余空白 → _
+    name = re.sub(r"_+", "_", name).strip("_").rstrip(".")  # 合并连续 _，去首尾 _ 和句点
+    return name or fallback
+
+
+def download_pdf(paper_id, dest_path):
+    r"""下载 arXiv 官方已编译的英文 PDF 到 dest_path，与中文译稿 PDF 并列保存。
+
+    为什么直接下 arXiv 的 PDF：它是作者最终排版、官方编译的版本，比本地重新编译英文
+    源码更稳、更快、也更忠于原貌。只有这里拿不到 PDF 时，上层才回落到用 compile.py
+    编译英文 MAIN_TEX。
+
+    依次尝试若干官方/镜像 URL；只有当响应确实以 %PDF 魔数开头时才落盘（避免把限流页、
+    HTML 错误页误存成 .pdf）。成功返回 dest_path，全部失败返回 None。
+    """
+    urls = (
+        f"https://arxiv.org/pdf/{paper_id}",
+        f"https://arxiv.org/pdf/{paper_id}.pdf",
+        f"https://export.arxiv.org/pdf/{paper_id}",
+    )
+    for url in urls:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = resp.read()
+        except Exception:
+            continue
+        if data[:4] != b"%PDF":
+            continue
+        os.makedirs(os.path.dirname(dest_path) or ".", exist_ok=True)
+        with open(dest_path, "wb") as f:
+            f.write(data)
+        return dest_path
+    return None
+
+
 def _sh_var_assign(name, value):
     """把 (name, value) 输出成可被 sh `eval` 安全消费的 `NAME='value'` 形式。"""
     esc = str(value).replace("'", "'\\''")
@@ -306,11 +364,28 @@ if __name__ == "__main__":
     rel_path, _ = find_main_tex(work_dir, tex_files)
     rel_path = rel_path.replace("\\", "/")
     fallback = os.path.splitext(os.path.basename(rel_path))[0]
-    pdf_name = pdf_name_from_title(fetch_arxiv_title(paper_id), fallback)
+    title = fetch_arxiv_title(paper_id)
+    pdf_name = pdf_name_from_title(title, fallback)
+    pdf_name_en = pdf_name_en_from_title(title, fallback)
     main_zh_rel = prepare_translation_copy(work_dir, rel_path)
 
-    # stdout 是契约：调用方按四行 KEY='value' 格式解析
+    # 英文原文 PDF：与 source/ 同级（即 $OUTPUT_DIR 下），和中文译稿 PDF 并排。
+    # work_dir 约定为 $OUTPUT_DIR/source，故其父目录就是 $OUTPUT_DIR。下载阶段目录名还是
+    # 占位的 $PARENT/$PAPER_ID，稍后整体 mv 成最终名时，这份英文 PDF 会跟着一起搬过去。
+    output_dir = os.path.dirname(os.path.abspath(work_dir))
+    pdf_en_path = os.path.join(output_dir, pdf_name_en + ".pdf")
+    pdf_en = download_pdf(paper_id, pdf_en_path)
+    if not pdf_en:
+        print(
+            f"提示：未能直接下载英文 PDF（{paper_id}）；"
+            f"请回落到 compile.py 编译英文 MAIN_TEX 到 $OUTPUT_DIR/$PDF_NAME_EN.pdf。",
+            file=sys.stderr,
+        )
+
+    # stdout 是契约：调用方按 KEY='value' 格式解析
     print(_sh_var_assign("WORK_DIR", os.path.abspath(work_dir)))
     print(_sh_var_assign("MAIN_TEX", rel_path))
     print(_sh_var_assign("MAIN_TEX_ZH", main_zh_rel))
     print(_sh_var_assign("PDF_NAME", pdf_name))
+    print(_sh_var_assign("PDF_NAME_EN", pdf_name_en))
+    print(_sh_var_assign("PDF_EN", pdf_en or ""))

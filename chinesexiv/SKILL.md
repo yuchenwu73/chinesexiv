@@ -1,6 +1,6 @@
 ---
 name: chinesexiv
-description: 把 arXiv 论文自动翻译为中文 PDF 的 ChineseXiv skill。触发后按本 skill 四步顺序直接执行，勿长篇规划。用户提供论文标题或 arXiv ID、说「翻译论文」「我想读中文版」等时立即使用。支持本地 xelatex 与在线编译双引擎、英文原文 _zh 副本对照、多篇并行处理。无需用户手动操作。
+description: 把 arXiv 论文自动翻译为中文 PDF 的 ChineseXiv skill。触发后按本 skill 四步顺序直接执行，勿长篇规划。用户提供论文标题或 arXiv ID、说「翻译论文」「我想读中文版」等时立即使用。支持本地 xelatex 与在线编译双引擎、英文原文 _zh 副本对照、多篇并行处理。每篇论文文件夹同时保留英文原文 PDF 与中文译文 PDF。无需用户手动操作。
 ---
 
 # ChineseXiv：arXiv 论文中文翻译
@@ -28,20 +28,22 @@ description: 把 arXiv 论文自动翻译为中文 PDF 的 ChineseXiv skill。�
 python3 {SKILL_DIR}/scripts/download.py "{PAPER_ID}" "$OUTPUT_DIR/source"
 ```
 
-`download.py` 一步完成：下载源码 → 解压 → 递归查找 `.tex` → 定位主文件 → 提取标题 → 把主文件以及它通过 `\input{}` / `\include{}` 引用的子 `.tex` 文件都复制为 `_zh.tex` 副本，并把 zh 主文件里的 input 引用一并改写到 `_zh` 版本。
+`download.py` 一步完成：下载源码 → 解压 → 递归查找 `.tex` → 定位主文件 → 提取标题 → 把主文件以及它通过 `\input{}` / `\include{}` 引用的子 `.tex` 文件都复制为 `_zh.tex` 副本，并把 zh 主文件里的 input 引用一并改写到 `_zh` 版本 → **直接下载 arXiv 官方编译好的英文 PDF**（按英文标题命名）落在 `source/` 同级目录，稍后与中文译稿 PDF 并排存放。
 
 ### `OUTPUT_DIR` 的命名约定
 
-用户通常给出**父目录**（例如 `~/papers`、`~/projects/paper-reading`）。约定每篇论文落在一个**独立子目录**下，命名为 `{paperid}-{中文标题}`：
+用户通常给出**父目录**（例如 `~/papers`、`~/projects/paper-reading`）。约定每篇论文落在一个**独立子目录**下，命名为 `{paperid}-{中文标题}`，目录里**同时**放英文原文 PDF 与中文译文 PDF：
 
 ```
 ~/projects/paper-reading/
 ├── 1706.03762-你所需要的只是Attention/
 │   ├── source/
-│   └── 你所需要的只是Attention.pdf
-└── 2605.12678-无人知晓地理空间基础模型的最优水平/
+│   ├── Attention Is All You Need.pdf        ← 英文原文（arXiv 官方 PDF，download.py 自动下载）
+│   └── 你所需要的只是Attention.pdf            ← 中文译文（compile.py 编译）
+└── 2605.17792-HydroAgent_基于模拟器驱动…/
     ├── source/
-    └── 无人知晓地理空间基础模型的最优水平.pdf
+    ├── HydroAgent_Bridging the Gap….pdf      ← 英文原文
+    └── HydroAgent_基于模拟器驱动….pdf          ← 中文译文
 ```
 
 由于中文标题在翻译完成前不可知，按下列两阶段处理：
@@ -61,15 +63,33 @@ python3 {SKILL_DIR}/scripts/download.py "{PAPER_ID}" "$OUTPUT_DIR/source"
 
 无源码（仅 PDF）则告知用户跳过。
 
-脚本向 stdout 输出四行，格式如下：
+脚本向 stdout 输出六行，格式如下：
 ```
 WORK_DIR=<源码目录绝对路径，即 $OUTPUT_DIR/source>
 MAIN_TEX=<英文原始主文件相对路径，只读快照>
 MAIN_TEX_ZH=<供翻译的中文主文件相对路径（download.py 已自动复制好）>
 PDF_NAME=<论文英文标题（仅供生成备用名）>
+PDF_NAME_EN=<英文原文 PDF 的跨平台安全文件名，冒号等已替换为 _>
+PDF_EN=<已下载的英文 PDF 绝对路径；若没下到则为空字符串>
 ```
 
 `MAIN_TEX` 永远是英文原文，**永远不要修改**；翻译只动 `MAIN_TEX_ZH` 及其 `_zh` 子文件。两者并列存放，方便对照。
+
+### 英文原文 PDF（强制：必须与中文译文同在一个文件夹）
+
+每个论文文件夹里**必须**同时有「英文原文 PDF」和「中文译文 PDF」，缺一不可。英文原文 PDF 的获取分两条路，**按优先级**走：
+
+1. **首选——直接下载 arXiv 官方 PDF（download.py 已自动完成）。** arXiv 已编译好的 PDF 是作者最终排版、最忠于原貌的版本，比本地重编英文源码更稳更快。`download.py` 会把它按 `PDF_NAME_EN` 命名，落在 `source/` 同级（即 `$OUTPUT_DIR`）。成功时 `PDF_EN` 是该文件的绝对路径。
+2. **回落——本地编译英文源码（仅当 `PDF_EN` 为空时）。** 极少数论文官方 PDF 取不到，此时在第四步（目录已重命名、工具链已就绪）顺带用 `compile.py` 编译只读的英文 `$MAIN_TEX`：
+
+   ```bash
+   # 仅当 download.py 的 PDF_EN 为空时执行；MAIN_TEX 无中文，compile.py 不会注入 CJK，按原貌编译
+   python3 {SKILL_DIR}/scripts/compile.py "$WORK_DIR" "$MAIN_TEX" "$OUTPUT_DIR/$PDF_NAME_EN.pdf" --engine auto
+   ```
+
+英文 PDF 命名约定 `PDF_NAME_EN`（`download.py` 已按此实现，跨平台/网盘/Git/URL 均安全）：以英文标题为基础，**半角/全角冒号 `:`/`：` → `_`**（与中文目录命名的方法名分隔同构，如 `GeoGround: ...` → `GeoGround_...`），**空格 → `_`**（不留空格，免去 shell/URL 转义），标题里**原有的连字符 `-` 保留**（如 `Vision-Language`，与代表空格的 `_` 区分，便于还原原题），其余 `<>"|?*` 等不安全字符 → `_`。最终形如 `GeoGround_A_Unified_Large_Vision-Language_Model_for_Remote_Sensing_Visual_Grounding.pdf`，与中文 PDF `GeoGround_面向遥感视觉定位的统一大型视觉-语言模型.pdf` 同享 `GeoGround_` 前缀、一眼成对；两份文件名天然以语言区分原文与译文。
+
+> 收尾自检：进入第四步「清理」前，**务必确认** `$OUTPUT_DIR` 下既有 `$PDF_NAME_EN.pdf`（英文原文）又有 `$PDF_NAME_ZH.pdf`（中文译文）。只有中文、缺英文（或反之）都算未完成。
 
 ---
 
@@ -77,7 +97,7 @@ PDF_NAME=<论文英文标题（仅供生成备用名）>
 
 由当前**对话模型**直接对 `$WORK_DIR/$MAIN_TEX_ZH`（以及它 input 进来的 `_zh` 子文件）进行翻译修改。`$MAIN_TEX` 是英文只读快照，**永远不要修改**。按以下规则翻译：
 
-- **翻译范围：** 默认翻译全文，包括 `\appendix` 之后的附录内容。用户明确要求「只翻正文」「不翻附录」时，才在 `\appendix` 之前停止翻译。
+- **翻译范围：** 默认翻译全文，包括 `\appendix` 之后的附录内容。用户明确要求「只翻正文」「不翻附录」时，才在 `\appendix` 之前停止翻译。**留意源码里「写好却被 `%` 注释掉的补充材料/附录」**（arXiv 版常见：作者把 supplementary 注释掉以压缩正文页数，`download.py` 仍会把它复制成 `_zh` 子文件）——这类内容 arXiv 官方英文 PDF 往往不含，但源码既已写好，可在用户要求或同意时取消注释、一并翻译编译，让中文版比 arXiv PDF 更完整；取消注释前先确认其引用的图表资产（`fig/` 等目录下）齐全，再编译。
 - **必须翻译：** 正文叙述、摘要、图表标题、列表项、脚注中的描述文本、代码块中的注释；附录 `tcolorbox` / `lstlisting` / prompt example 里的**自然语言提示词、角色说明、步骤说明、动作说明、表头说明**也要翻译（这是论文内容，不是“代码本体”）；**机构名**（如「斯坦福大学（Stanford University）」）与**描述性方法名/模块名**（如「自适应检索模块（Adaptive Retrieval Module, ARM）」）也要中译，按下方「术语首次出现规则」给出中英对照。
 - **保留不翻：** 数学环境、LaTeX 命令、`\cite{}`/`\ref{}`/`\label{}`、图片路径、URL、`.bib`、**代码本体中的标识符 / JSON key / API action name / XML tag / 占位符**（如 `action_type`、`open_app`、`<tool_call>`、`<instruction_here>`）、**人名**、**专有模型名**（GPT-4、LLaMA、Qwen、DeepSeek 等已成符号的型号）、**专有数据集/基准名**（ImageNet、MMLU、GSM8K 等）。不要把整段 prompt 模板误判为代码而原样保留；只保留其中必须机器可读或示例结构相关的 token。
 - **不要新增字体修饰：** 严禁额外添加 `\textit{}`、`\textbf{}`、`\emph{}` 等格式命令——只在原文已存在时按位置保留。括号里的英文机构名、英文术语原文一律用 \textbf{正体（plain）}，不要套 `\textit{}`；括号内的英文只是为方便对照，不属于「需要强调」的内容。
@@ -116,10 +136,16 @@ python3 {SKILL_DIR}/scripts/inspect_tex.py scan "$WORK_DIR" "$MAIN_TEX_ZH" body
 
 ## 第四步：编译与清理
 
-**目录最终命名**：在编译前，按第二步的命名约定，把 `$OUTPUT_DIR` 从 `$PARENT/$PAPER_ID` 重命名为 `$PARENT/$PAPER_ID-$PDF_NAME_ZH`，使整篇论文（含 `source/` 子目录与 PDF）都落在最终目录里。`$PDF_NAME_ZH` 基于翻译后的 `\title{}` 自然命名，与 `\title{}` 一致或更精炼。最终 PDF 直接落在 `$OUTPUT_DIR/$PDF_NAME_ZH.pdf`，与 `source/` 同级。
+**目录最终命名**：在编译前，按第二步的命名约定，把 `$OUTPUT_DIR` 从 `$PARENT/$PAPER_ID` 重命名为 `$PARENT/$PAPER_ID-$PDF_NAME_ZH`，使整篇论文（含 `source/` 子目录、第二步已下载的英文原文 PDF）都落在最终目录里。`$PDF_NAME_ZH` 基于翻译后的 `\title{}` 自然命名，与 `\title{}` 一致或更精炼。最终中文 PDF 直接落在 `$OUTPUT_DIR/$PDF_NAME_ZH.pdf`，与 `source/`、英文原文 PDF 同级。第二步下载的 `$PDF_NAME_EN.pdf` 在 `$OUTPUT_DIR` 内，整体 `mv` 时会自动跟着搬到最终目录，无需单独处理。
 
 ```bash
 python3 {SKILL_DIR}/scripts/compile.py "$WORK_DIR" "$MAIN_TEX_ZH" "$OUTPUT_DIR/$PDF_NAME_ZH.pdf" --engine auto
+```
+
+**英文原文 PDF 兜底**：若第二步 `PDF_EN` 为空（官方 PDF 没下到），在这里顺带补一份英文 PDF，确保最终目录里中英两份都在：
+
+```bash
+[ -z "$PDF_EN" ] && python3 {SKILL_DIR}/scripts/compile.py "$WORK_DIR" "$MAIN_TEX" "$OUTPUT_DIR/$PDF_NAME_EN.pdf" --engine auto
 ```
 
 **`--engine` 选项**（默认 `auto`）：
@@ -192,7 +218,7 @@ for i in [0, ...]:  # 首页必看；含作者块、长 caption、多列表格�
 
 ### 清理中间产物
 
-编译并目视确认后，再清理（删除 `source/build/` 与 inspect 临时文件，保留英文原文与翻译稿源码以便对照与手动重编）：
+编译并目视确认后，再清理（删除 `source/build/` 与 inspect 临时文件，保留英文原文与翻译稿源码以便对照与手动重编）。**清理前最后确认 `$OUTPUT_DIR` 下中英两份 PDF 都在**（`$PDF_NAME_EN.pdf` + `$PDF_NAME_ZH.pdf`）：
 
 ```bash
 python3 {SKILL_DIR}/scripts/cleanup.py "$OUTPUT_DIR"
@@ -203,7 +229,8 @@ cleanup.py **只清 `build/` 子目录内的中间产物**，不动 `source/` �
 多篇论文时，所有论文都完成 PDF 编译并目视确认后再进行中间文件清理。
 
 最后告知用户：
-- PDF 路径：`$OUTPUT_DIR/$PDF_NAME_ZH.pdf`
+- 中文译文 PDF：`$OUTPUT_DIR/$PDF_NAME_ZH.pdf`
+- 英文原文 PDF：`$OUTPUT_DIR/$PDF_NAME_EN.pdf`（arXiv 官方 PDF；个别论文取不到时为本地编译英文源码所得）
 - 源码目录：`$OUTPUT_DIR/source/`（含英文原文 + `_zh.tex` 中文译稿，可手动重编）
 
 ---

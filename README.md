@@ -60,14 +60,15 @@ cp -r chinesexiv ~/.codex/skills/         # Codex
 Agent 会按本 Skill 里的四步流程跑：
 
 1. **确定 arXiv ID** —— 给 URL/ID 直接用；给标题就上 arXiv 找。
-2. **拉源码** —— `scripts/download.py` 下载、解压、定位主 `.tex`、抓论文标题，并把主文件及其 `\input`/`\include` 引用全部复制一份 `_zh.tex` 副本（英文原文只读保留，翻译只动 `_zh`）。
+2. **拉源码 + 取英文原文 PDF** —— `scripts/download.py` 下载、解压、定位主 `.tex`、抓论文标题，把主文件及其 `\input`/`\include` 引用全部复制一份 `_zh.tex` 副本（英文原文只读保留，翻译只动 `_zh`），并**直接下载 arXiv 官方英文 PDF**（按英文标题命名）放到同一目录。
 3. **翻译** —— 模型直接对 `_zh.tex` 系列文件就地修改。术语遵循"首次出现给中英对照"规则，机构名/描述性方法名也翻译，专有模型名（GPT-4、LLaMA…）和数据集名（ImageNet、MMLU…）保留英文。翻译完用 `scripts/inspect_tex.py` 扫一遍漏译。
 4. **编译** —— `scripts/compile.py` 默认 `--engine auto`：本地有 `xelatex` 就走本地，否则回落到在线编译。中文 PDF 直接放到输出目录、文件名就是中文 `\title{}`。
 
-最终交付：
+最终交付（每篇论文一个独立目录 `<arXiv-ID>-<中文标题>/`，中英两份 PDF 并列）：
 
-- `$OUTPUT/<中文标题>.pdf`
-- `$OUTPUT/source/` —— 英文原文 + `_zh.tex` 译稿，方便对照、手动重编
+- `<中文标题>.pdf` —— 中文译文
+- `<英文标题>.pdf` —— 英文原文（arXiv 官方 PDF；个别取不到时回落本地编译英文源码）
+- `source/` —— 英文原文 `.tex` + `_zh.tex` 译稿，方便对照、手动重编
 
 ---
 
