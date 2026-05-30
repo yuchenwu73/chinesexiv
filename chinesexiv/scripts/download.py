@@ -229,25 +229,28 @@ def pdf_name_en_from_title(title, fallback, max_len=240):
     return name or fallback
 
 
-def download_pdf(paper_id, dest_path):
+def download_pdf(paper_id, dest_path, timeout=45):
     r"""下载 arXiv 官方已编译的英文 PDF 到 dest_path，与中文译稿 PDF 并列保存。
 
     为什么直接下 arXiv 的 PDF：它是作者最终排版、官方编译的版本，比本地重新编译英文
     源码更稳、更快、也更忠于原貌。只有这里拿不到 PDF 时，上层才回落到用 compile.py
     编译英文 MAIN_TEX。
 
-    依次尝试若干官方/镜像 URL；只有当响应确实以 %PDF 魔数开头时才落盘（避免把限流页、
-    HTML 错误页误存成 .pdf）。成功返回 dest_path，全部失败返回 None。
+    URL 顺序：**export.arxiv.org 镜像优先**——arXiv 主站 (arxiv.org) 对最新提交的论文
+    偶发连接超时（实测出现 http=000 的长时间挂起），export 镜像稳定得多；主站随后作为
+    后备。单个 URL 用较短 timeout（默认 45s）快速失败、尽早切到下一个，避免在挂起的连接
+    上空等几分钟。只有响应确实以 %PDF 魔数开头才落盘（避免把限流页、HTML 错误页误存成
+    .pdf）。成功返回 dest_path，全部失败返回 None。
     """
     urls = (
+        f"https://export.arxiv.org/pdf/{paper_id}",
         f"https://arxiv.org/pdf/{paper_id}",
         f"https://arxiv.org/pdf/{paper_id}.pdf",
-        f"https://export.arxiv.org/pdf/{paper_id}",
     )
     for url in urls:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
                 data = resp.read()
         except Exception:
             continue
