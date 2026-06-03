@@ -63,6 +63,10 @@
 2. 把 wrapfigure 改为普通 `figure[t]`（不强求文字绕排）；
 3. 加大 `wrapfigure` 宽度到 `0.5\linewidth`。
 
+**相邻堆叠的 figure + table，图注与表注上下叠字**
+→ 同一栏顶部紧挨着的 `figure[t]` 与 `table[t]`（源码里两个浮动体一前一后、中间几乎没有正文），中译后图注与表注贴死、文字相互重叠。根因**不在表**，而在 figure 内 `\caption`/`\label` 之后那行用来省页的负间距（如 `\vspace{-6mm}`）：英文原作图注只占一行，`-6mm` 刚好压掉图下空白；中译后图注常涨到两行（方块字更宽 + `\linespread{1.25}`），figure 的真实高度比 `-6mm` 所假定的多出约一行，于是紧随其后堆叠的 `table` 仍按被缩短的 box 下边界往上排，正好压到图注末行上。这类问题**日志不报 Overfull**（是浮动体间距问题，不是 hbox 超宽），只有渲染该页才看得出来。
+→ 修复：按「中文比英文多出的行数 × 行高」回补那行负 `\vspace`（单栏正文每行 ≈5mm，故把 `-6mm` 调成 `-1mm` 即可，并非全删），或直接删掉它；**不要**去改全局 `\textfloatsep`/`\floatsep`（会牵动全篇所有浮动体）。改完渲染该页确认两注之间留出间距、且下方浮动体没有被顶到次页。实例：RSGround-R1 第 9 页 Figure 5(`fig:std`) 与 Table 5(`tab:spacon`) 叠字，定位到 `sec/4_experiment_zh.tex` 中 `fig:std` 图注后的 `\vspace{-6mm}`，改为 `\vspace{-1mm}` 后两注分开、排版未跑版。
+
 **附录里 tcolorbox + lstlisting 冲出右边距**
 → 不是 box 的问题，是 box 内 `lstlisting` 默认 `breaklines=false` 导致长中文整行不断行。preamble 加 `\lstset{breaklines=true, ...}` + `\tcbset{promptstyle/.style={...}}` 就一次解决排版 + 美观。完整诊断与脚本见 `references/framed-content.md`。
 
