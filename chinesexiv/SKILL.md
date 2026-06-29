@@ -98,10 +98,10 @@ PDF_EN=<已下载的英文 PDF 绝对路径；若没下到则为空字符串>
 由当前**对话模型**直接对 `$WORK_DIR/$MAIN_TEX_ZH`（以及它 input 进来的 `_zh` 子文件）进行翻译修改。`$MAIN_TEX` 是英文只读快照，**永远不要修改**。按以下规则翻译：
 
 - **翻译范围：** 默认翻译全文，包括 `\appendix` 之后的附录内容。用户明确要求「只翻正文」「不翻附录」时，才在 `\appendix` 之前停止翻译。**留意源码里「写好却被 `%` 注释掉的补充材料/附录」**（arXiv 版常见：作者把 supplementary 注释掉以压缩正文页数，`download.py` 仍会把它复制成 `_zh` 子文件）——这类内容 arXiv 官方英文 PDF 往往不含，但源码既已写好，可在用户要求或同意时取消注释、一并翻译编译，让中文版比 arXiv PDF 更完整；取消注释前先确认其引用的图表资产（`fig/` 等目录下）齐全，再编译。**关键：中文版一旦纳入补充材料，英文 PDF 也必须同步含补充材料才能逐页对照** —— 复制英文主文件为 `main_en.tex`（**不动只读的 `$MAIN_TEX`**），在副本里取消同样的 `\input{...}`，再用 `compile.py` 编译覆盖原英文 PDF。
-- **必须翻译：** 正文叙述、摘要、图表标题、列表项、脚注中的描述文本、代码块中的注释；附录 `tcolorbox` / `lstlisting` / prompt example 里的**自然语言提示词、角色说明、步骤说明、动作说明、表头说明**也要翻译（这是论文内容，不是“代码本体”）；**机构名**（如「斯坦福大学（Stanford University）」）与**描述性方法名/模块名**（如「自适应检索模块（Adaptive Retrieval Module, ARM）」）也要中译，按下方「术语首次出现规则」给出中英对照。
+- **必须翻译：** 正文叙述、摘要、图表标题、列表项、脚注中的描述文本、代码块中的注释；附录 `tcolorbox` / `lstlisting` / prompt example 里的**自然语言提示词、角色说明、步骤说明、动作说明、表头说明**也要翻译（这是论文内容，不是“代码本体”）；**作者/机构区的机构名**直接译为全中文（如「斯坦福大学」），不保留英文原文或中英对照；**描述性方法名/模块名**（如「自适应检索模块（Adaptive Retrieval Module, ARM）」）也要中译，按下方「术语首次出现规则」给出中英对照。
 - **图表前缀与图内文字：** 中文 PDF 中 LaTeX 自动生成或正文引用里的 `Figure` / `Fig.` / `Table` / `Tab.` 前缀统一本地化为「图」「表」（必要时在主 `_zh.tex` 或补充材料入口添加 `\renewcommand{\figurename}{图}` / `\renewcommand{\tablename}{表}`）。但图片、截图、外部 PDF/矢量资产内部已经渲染好的英文标注、坐标轴、界面文字默认不改，除非可在可编辑源码中自然修改且不破坏版面。
 - **保留不翻：** 数学环境、LaTeX 命令、`\cite{}`/`\ref{}`/`\label{}`、图片路径、URL、`.bib`、**代码本体中的标识符 / JSON key / API action name / XML tag / 占位符**（如 `action_type`、`open_app`、`<tool_call>`、`<instruction_here>`）、**人名**、**专有模型名**（GPT-4、LLaMA、Qwen、DeepSeek 等已成符号的型号）、**专有数据集/基准名**（ImageNet、MMLU、GSM8K 等）。不要把整段 prompt 模板误判为代码而原样保留；只保留其中必须机器可读或示例结构相关的 token。
-- **不要新增字体修饰：** 严禁额外添加 `\textit{}`、`\textbf{}`、`\emph{}` 等格式命令——只在原文已存在时按位置保留。括号里的英文机构名、英文术语原文一律用 \textbf{正体（plain）}，不要套 `\textit{}`；括号内的英文只是为方便对照，不属于「需要强调」的内容。
+- **不要新增字体修饰：** 严禁额外添加 `\textit{}`、`\textbf{}`、`\emph{}` 等格式命令——只在原文已存在时按位置保留。作者/机构区不写英文机构对照；正文术语对照括号里的英文一律用 \textbf{正体（plain）}，不要套 `\textit{}`；括号内的英文只是为方便对照，不属于「需要强调」的内容。
 - **专有名词：** Transformer、Softmax、Token、Attention、Self-Attention、Multi-Head Attention、Scaled Dot-Product Attention 等已通用化的学术术语**严格保留英文**，不要硬译为「转换器 / 注意力 / 自注意力 / 多头注意力」等。复合词同样保留：`Multi-Head Self-Attention`、`Restricted Self-Attention`、`Encoder Self-Attention` 等都不要拆译。其它领域的同类约定俗成术语（CNN、RNN、LSTM、Embedding、Token、Logits、Softmax、Dropout、BLEU 等）同理。
 - **术语首次出现规则（重要）：** 全文术语、符号、代号需统一；非通用新名词、新术语、新概念在**首次出现**时给出清晰说明。
   - 反复出现（≥2 次）的较长词组，在**首次出现**时写作「中文全称（English Full Name, ABBR）」，例如「灾害行动响应智能体（Disaster Operational Response Agent, DORA）」，之后全文统一用缩写 `ABBR` 或中文简称；
@@ -209,7 +209,7 @@ for i in [0, ...]:  # 首页必看；含作者块、长 caption、多列表格�
 
 然后用 Read 工具把这几张 PNG 实际过一遍眼睛，确认：
 
-- [ ] **作者块** 没有溢出右边距（中文机构名通常比英文长 1.5–2x，原作 5 个名字 + `\quad` 一行的排版换成中译后常常溢出；按 `references/author-block.md` 调整）。
+- [ ] **作者块** 没有溢出右边距，且作者姓名保留英文/拼音、机构只保留中文译名（不写中英对照）；原作 5 个名字 + `\quad` 一行的排版常常溢出，按 `references/author-block.md` 调整。
 - [ ] **多列表格** 没有任何单元格内文字被压成竖排、数字互相粘连或与边框重叠（中文字符高且方，原作 `m{1.10cm}` / 13 列 benchmark 表在中译后多半装不下；日志无严重 Overfull 也可能视觉失败，按 `references/table-overflow.md` 的“视觉失败但日志干净”范式处理：**先试竖版紧凑方案并渲染确认**，只有竖版仍不可读或字号低于底线时，才用 `pdflscape` 横向页）。
 - [ ] **wrapfigure / wraptable / sidefig** 没有被切断、没有与正文或相邻 figure 重叠；若 wraptable 与右侧图/双栏浮动互相压住，优先改为普通 `table` 或移动浮动体，不要硬留 wrap。
 - [ ] **tcolorbox / lstlisting / prompt example** 内容在框内完整可读；自然语言提示词已经翻译，JSON key / XML tag / placeholder 等机器可读 token 保留；统一使用 `promptstyle`，避免每个框各写一套选项。
@@ -240,4 +240,4 @@ cleanup.py **只清 `build/` 子目录内的中间产物**，不动 `source/` �
 - `references/table-overflow.md`：**表格与中文重叠的诊断 + 修复范式**——为什么不能"一刀切缩小所有表"、怎么用 `Overfull \hbox` 日志精确定位、怎么用 `\resizebox{\linewidth}{!}{...}` 批量修、二级手段（`\tabcolsep` / `\arraystretch` / 表头精简 / 横版 / 拆表）顺序与边界。**每篇必跑的最后一道工序，读这个。**
 - `references/framed-content.md`：**附录里 `tcolorbox`/`lstlisting` 的诊断 + 排版基线**——为什么中文长行会冲出框右边、为什么默认 box 看起来很糙、preamble 里 `\lstset{breaklines=true}` + `\tcbset{promptstyle/.style={...}}` 一处统一所有 box 风格、批量把 inline 选项压成 `promptstyle` 的脚本。**论文有 GPT 提示词/JSON 模板/对话样例附录时读这个。**
 - `references/compile-errors.md`：编译常见错误、CJK 排版陷阱（宽表挤压、wrapfigure caption 溢出、`.bbl` 误删等）及修复方法。
-- `references/author-block.md`：作者/机构区的排版与译名规范（短机构内联、长机构换行、`\textit` 禁用规则、「全国/国家重点实验室」译法、**中文版机构名长度是英文 1.5–2x 必须默认拆行**）。翻译机构/作者块前先读这个。
+- `references/author-block.md`：作者/机构区的排版与译名规范（作者姓名保留英文/拼音、机构只保留中文译名、`\textit` 禁用规则、「全国/国家重点实验室」译法、**作者名行过长必须默认拆行**）。翻译机构/作者块前先读这个。

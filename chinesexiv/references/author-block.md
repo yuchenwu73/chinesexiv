@@ -18,7 +18,7 @@
 | 内容 | 处理方式 |
 |---|---|
 | 作者姓名 | 一律不翻译，保留英文/拼音 |
-| 学校 / 学院 / 实验室 / 公司 | 翻译为中文，并附英文原文 |
+| 学校 / 学院 / 实验室 / 公司 | 翻译为中文，作者/机构区不附英文原文 |
 | 城市、国家 | 翻译为中文（"北京"、"中国"、"日本"），地名标准译名 |
 | 邮箱 `\texttt{...}` | 保留 |
 | 上下标符号 `^{1*}` `^\star` `^\dagger` | 保留 |
@@ -27,17 +27,17 @@
 
 ---
 
-## 3. 机构译名的两种排版方式
+## 3. 机构译名的排版方式
 
-### A. 短机构 → 一行内 `中文（English）`（首选）
+### A. 每个机构只保留中文译名
 
-机构名整体一行能放下时，直接用一行：
+作者/机构区不是术语定义区。机构名译成中文即可，不做 `中文（English）` 对照，也不要另起一行放英文原文：
 
 ```latex
-\textsuperscript{1}东京大学（The University of Tokyo），
-\textsuperscript{2}理化学研究所先进智能项目（RIKEN Center for Advanced Intelligence Project, RIKEN AIP），
-\textsuperscript{3}早稻田大学（Waseda University），
-\textsuperscript{4}斯坦福大学（Stanford University）\\
+\textsuperscript{1}东京大学，
+\textsuperscript{2}理化学研究所先进智能项目，
+\textsuperscript{3}早稻田大学，
+\textsuperscript{4}斯坦福大学\\
 ```
 
 或一作一栏的形式（NeurIPS 模板）：
@@ -45,28 +45,22 @@
 ```latex
 \And
 Noam Shazeer\footnotemark[1]\\
-谷歌大脑（Google Brain）\\
+谷歌大脑\\
 \texttt{noam@google.com}\\
 ```
 
-### B. 长机构 → 中文一行，英文换行一行（次选）
+### B. 长机构 → 中文单独成行
 
-当英文机构名很长（>40 词）、放在 `（...）` 里会撑出右边距时，**改成两行**：第一行中文译名，第二行用 `\\` 起新行写英文原文。**英文用正体（无 `\textit{}` 修饰）**，可选 `\small` 缩字号。
+当机构名很长时，每个机构单独一行；必要时在中文短语边界手动换行，但仍只保留中文：
 
 ```latex
 $^{1}$北京理工大学空天智能信息处理科学与技术全国重点实验室，北京，中国\\
-{\small (National Key Laboratory of Science and Technology on Space-Born Intelligent}\\
-{\small Information Processing, Beijing Institute of Technology, Beijing, China)}\\[1pt]
 $^{4}$武汉大学测绘遥感信息工程全国重点实验室，武汉，中国\\
-{\small (State Key Laboratory of Information Engineering in Surveying, Mapping and}\\
-{\small Remote Sensing, Wuhan University, Wuhan, China)}\\
 ```
 
-在英文一行装不下时，按词义切到下一行：「Intelligent」之后断、「Mapping and」之后断，避免拆开短语。
+### 拆不拆行怎么选？
 
-### 选哪种？
-
-> 简单判断：放进 `（...）` 之后这一整行会不会撑出页边？会就用 B，不会就用 A。
+> 简单判断：中文机构行会不会撑出页边？会就拆成每机构一行；超长机构仍溢出时，在中文短语边界继续拆行。
 
 ---
 
@@ -80,7 +74,7 @@ $^{4}$武汉大学测绘遥感信息工程全国重点实验室，武汉，中�
 ✗ 计算机学院，武汉大学，武汉，中国              （读起来别扭）
 ```
 
-英文原文遵循英文习惯（**Department, University, City, Country**），不要为了和中文对齐而改写英文括号里的内容，英文原文照抄即可。
+作者/机构区不保留英文机构原文；英文原文只作为译名依据，不写进中文 PDF 的作者块。
 
 ---
 
@@ -102,7 +96,7 @@ $^{4}$武汉大学测绘遥感信息工程全国重点实验室，武汉，中�
 ## 6. 字体修饰 — 严禁额外添加
 
 - **正文**：原文出现 `\textit{}` / `\textbf{}` / `\emph{}` 时按位置保留，**翻译时不要新增**任何修饰命令。
-- **作者/机构区**：括号里的英文机构名一律用 **正体（plain）**，不要套 `\textit{}` 或 `\emph{}`——这些命令是用来「强调」的，纯粹的对照译名不需要强调。
+- **作者/机构区**：不要写括号里的英文机构名，也不要为了机构名新增 `\textit{}` 或 `\emph{}`。
 - **行间术语对照**：`视觉-语言模型（Vision-Language Models, VLMs）` 这类首次出现的术语对照，**括号里的英文也用正体**，与机构译名规则一致。
 - **任务/术语本身就是 `\textit{}`** 的情况（例如表格表头 `\textit{Global Detection (GD)}`、`\textit{1024 × 1024 crop window}`）：原文就有的修饰必须保留，不要去掉。
 
@@ -112,39 +106,39 @@ $^{4}$武汉大学测绘遥感信息工程全国重点实验室，武汉，中�
 
 ## 7. 中文版会比英文长 1.5–2x：默认拆行，不要硬挤一行
 
-英文原作经常用 `\quad`（= 1em）作为同一行内分隔多个作者或多个机构的间距。换成中文后，**机构译名加上中英括号对照常常是英文原文的 1.5–2 倍长**，原本舒服的一行翻完会溢出右页边距。具体表现：
+英文原作经常用 `\quad`（= 1em）作为同一行内分隔多个作者或多个机构的间距。中文机构名虽然不再附英文原文，但作者数量多、机构名长时仍然容易溢出右页边距。具体表现：
 
 - 作者名行：5 个名字 + 4 个 `\quad` 在英文里勉强 fit textwidth，中译后 `\textsuperscript{}` 注脚加上 CJK 间距，最后一个名字会被切到页外。
-- 机构行：`\textsuperscript{1}短机构 \quad \textsuperscript{2}中机构 \quad \textsuperscript{3}长机构` 通常超 textwidth，第 3 个机构溢出。
+- 机构行：`\textsuperscript{1}短机构 \quad \textsuperscript{2}中机构 \quad \textsuperscript{3}长机构` 可能超 textwidth，第 3 个机构溢出。
 
 **翻译时默认的拆行策略**（按这个顺序选）：
 
 1. **作者名**：每行不超过 3–4 个名字。原作 5+ 名字一行的，**一律拆**为 3-3-3 或 4-3-2 等。
 2. **机构**：**每个机构占一行**（`\\` 结尾）。这是最稳的做法，永不溢出。如果机构都很短（例如 `\textsuperscript{1}清华大学 \quad \textsuperscript{2}北大`），可以两个一行；但只要有一个长机构，整列都拆成单行更安全。
-3. 个别超长的（例如「微软「AI 向善」研究实验室（Microsoft AI for Good Research Lab）」），即便单独占一行也可能撑过居中宽度——这时改成 §3-B 的「中文一行 + 英文换行另一行」。
+3. 个别超长的（例如「北京理工大学空天智能信息处理科学与技术全国重点实验室」），即便单独占一行也可能撑过居中宽度——这时在中文短语边界继续手动断行。
 
 **反例（错误，会溢出）**：
 
 ```latex
-\textsuperscript{1}Taylor 地理空间研究院（Taylor Geospatial） \quad
-\textsuperscript{2}慕尼黑工业大学（Technical University of Munich） \quad
-\textsuperscript{3}微软「AI 向善」研究实验室（Microsoft AI for Good Research Lab） \\
-\textsuperscript{4}艾伦人工智能研究院（Allen Institute for AI） \quad
-\textsuperscript{5}Vector 研究院（Vector Institute） \quad
-\textsuperscript{6}卡尔顿大学（Carleton University） \quad
-\textsuperscript{7}克拉克大学（Clark University）\\
+\textsuperscript{1}Taylor 地理空间研究院 \quad
+\textsuperscript{2}慕尼黑工业大学 \quad
+\textsuperscript{3}微软「AI 向善」研究实验室 \\
+\textsuperscript{4}艾伦人工智能研究院 \quad
+\textsuperscript{5}Vector 研究院 \quad
+\textsuperscript{6}卡尔顿大学 \quad
+\textsuperscript{7}克拉克大学\\
 ```
 
 **正例（每机构一行）**：
 
 ```latex
-\textsuperscript{1}Taylor 地理空间研究院（Taylor Geospatial）\\
-\textsuperscript{2}慕尼黑工业大学（Technical University of Munich）\\
-\textsuperscript{3}微软「AI 向善」研究实验室（Microsoft AI for Good Research Lab）\\
-\textsuperscript{4}艾伦人工智能研究院（Allen Institute for AI）\\
-\textsuperscript{5}Vector 研究院（Vector Institute）\\
-\textsuperscript{6}卡尔顿大学（Carleton University）\\
-\textsuperscript{7}克拉克大学（Clark University）\\
+\textsuperscript{1}Taylor 地理空间研究院\\
+\textsuperscript{2}慕尼黑工业大学\\
+\textsuperscript{3}微软「AI 向善」研究实验室\\
+\textsuperscript{4}艾伦人工智能研究院\\
+\textsuperscript{5}Vector 研究院\\
+\textsuperscript{6}卡尔顿大学\\
+\textsuperscript{7}克拉克大学\\
 ```
 
 **为什么 `tabular{c}` 会溢出而不是自动换行**：作者块通常包在 `\begin{tabular}{c}...\end{tabular}` 里，`tabular` 的列宽是按**最长行**取的，**不会自动换行**——一行内容超 textwidth 就直接溢出页面。所以必须人工 `\\` 切到下一行。
@@ -156,7 +150,8 @@ $^{4}$武汉大学测绘遥感信息工程全国重点实验室，武汉，中�
 | 检查项 | 期望 |
 |---|---|
 | `\author{}` 内是否有手写的 `\begin{center}` 或 `\centering` | 应该没有；模板会自己居中 |
-| 是否新增了 `\textit{...}` 包裹括号里的英文 | 应该没有 |
+| 作者/机构区是否残留英文机构括号或英文机构独立行 | 应该没有 |
+| 是否新增了 `\textit{...}` 包裹机构名 | 应该没有 |
 | 「State Key Laboratory」是否还残留译为「国家重点实验室」 | 应该没有（除非明确未重组） |
 | 长机构是否会撑出右边距 | **必须**用 PDF 渲染首页 PNG 确认，必要时按 §3-B 拆行 |
 | 作者名行长度是否超过 textwidth | 名字 + `\textsuperscript{}` + `\quad` 加起来超 textwidth 必溢出，按 §7 拆行 |
