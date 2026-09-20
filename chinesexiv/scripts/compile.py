@@ -270,6 +270,20 @@ def _project_contains_cjk(work_dir):
     return False
 
 
+_COMMENT_RE = re.compile(r"(?<!\\)%.*$", re.M)
+
+
+def _strip_latex_comments(text):
+    """剥掉 LaTeX 注释（未转义的 % 到行尾），供「是否已自带某宏包」类检测使用。
+
+    必须剥离后再匹配：论文源码里常残留被注释掉的 \\usepackage{xeCJK} /
+    \\setCJKmainfont{...}（模板遗留或作者试验残留）。若不剥离，就会误判为
+    「作者已配好 CJK 栈」而跳过注入，最终编译 exit 0 但中文全部渲染为空白
+    字形，只有日志里留下大量 Missing character 警告——属于静默失败。
+    """
+    return _COMMENT_RE.sub("", text)
+
+
 def _ensure_cjk_support(work_dir, main_rel):
     """若项目含中文且主文件还没装好 CJK 栈，就在 \\begin{document} 前注入 xeCJK 配置。"""
     path = os.path.join(work_dir, main_rel)
@@ -282,9 +296,12 @@ def _ensure_cjk_support(work_dir, main_rel):
     if not _project_contains_cjk(work_dir):
         return False
 
+    # 检测基于「剥掉注释后」的文本：被注释掉的 xeCJK 不应算作已配置
+    probe = _strip_latex_comments(text)
+
     # 论文若已经自带 CJK/Unicode 栈，就尊重原作者的配置，不强行注入。
     if any(
-        tok in text
+        tok in probe
         for tok in (
             "\\usepackage{luatexja}",
             "\\usepackage{luatexja-fontspec}",
@@ -301,7 +318,7 @@ def _ensure_cjk_support(work_dir, main_rel):
 
     preamble = _AUTO_CJK_PREAMBLE
     # 论文自己已经 \\usepackage{fontspec} 了就不重复加，否则 xelatex 会报已加载警告
-    if "\\usepackage{fontspec}" in text:
+    if "\\usepackage{fontspec}" in probe:
         preamble = preamble.replace("\\usepackage{fontspec}\n", "", 1)
 
     new_text, n = _BEGIN_DOCUMENT_RE.subn(lambda _: preamble + r"\begin{document}", text, count=1)

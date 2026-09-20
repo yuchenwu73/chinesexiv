@@ -118,10 +118,13 @@ def _walk_includes(work_dir: str, main_tex: str) -> list[str]:
                 text = f.read()
         except OSError:
             continue
-        for m in INPUT_RE.finditer(text):
-            inc = _norm_tex_path(os.path.dirname(cur), m.group(2))
-            if inc and inc.startswith(work_dir + os.sep):
-                queue.append(inc)
+        # 逐行剥掉 % 注释后再找 \input：被注释掉的 \input 不参与编译，
+        # 若照样跟进，会把无关文件拉进扫描队列并虚报大量 SUSPECT。
+        for line in text.splitlines():
+            for m in INPUT_RE.finditer(COMMENT_RE.sub("", line)):
+                inc = _norm_tex_path(os.path.dirname(cur), m.group(2))
+                if inc and inc.startswith(work_dir + os.sep):
+                    queue.append(inc)
     return ordered
 
 
