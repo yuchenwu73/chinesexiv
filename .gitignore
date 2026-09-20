@@ -3,6 +3,9 @@ __pycache__/
 *.pyo
 .DS_Store
 
+# OMC 运行时状态目录
+.omc/
+
 # LaTeX local build artifacts (if README/test PDFs are tried out)
 *.aux
 *.log
