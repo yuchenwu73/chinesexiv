@@ -222,7 +222,7 @@ for i in [0, ...]:  # 首页必看；含作者块、长 caption、多列表格�
 
 然后用 Read 工具把这几张 PNG 实际过一遍眼睛，确认：
 
-- [ ] **作者块** 没有溢出右边距，且作者姓名保留英文/拼音、机构只保留中文译名（不写中英对照）；原作 5 个名字 + `\quad` 一行的排版常常溢出，按 `references/author-block.md` 调整。
+- [ ] **作者块** 没有溢出右边距，且作者姓名保留英文/拼音、机构只保留中文译名（不写中英对照）；作者名每行不超过 3–4 个，5 个以上必须拆行；可用 `pdftotext -bbox` 检查每行 xMin/xMax 是否落在版心内，详见 `references/author-block.md`。
 - [ ] **多列表格** 没有任何单元格内文字被压成竖排、数字互相粘连或与边框重叠（中文字符高且方，原作 `m{1.10cm}` / 13 列 benchmark 表在中译后多半装不下；日志无严重 Overfull 也可能视觉失败，按 `references/table-overflow.md` 的“视觉失败但日志干净”范式处理：**先试竖版紧凑方案并渲染确认**，只有竖版仍不可读或字号低于底线时，才用 `pdflscape` 横向页）。
 - [ ] **wrapfigure / wraptable / sidefig** 没有被切断、没有与正文或相邻 figure 重叠；若 wraptable 与右侧图/双栏浮动互相压住，优先改为普通 `table` 或移动浮动体，不要硬留 wrap。
 - [ ] **tcolorbox / lstlisting / prompt example** 内容在框内完整可读；自然语言提示词已经翻译，JSON key / XML tag / placeholder 等机器可读 token 保留；统一使用 `promptstyle`，避免每个框各写一套选项。
