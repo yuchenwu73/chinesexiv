@@ -62,13 +62,16 @@ Agent 会按本 Skill 里的四步流程跑：
 1. **确定 arXiv ID** —— 给 URL/ID 直接用；给标题就上 arXiv 找。
 2. **拉源码 + 取英文原文 PDF** —— `scripts/download.py` 下载、解压、定位主 `.tex`、抓论文标题，把主文件及其 `\input`/`\include` 引用全部复制一份 `_zh.tex` 副本（英文原文只读保留，翻译只动 `_zh`），并**直接下载 arXiv 官方英文 PDF**（按英文标题命名）放到同一目录。
 3. **翻译** —— 模型直接对 `_zh.tex` 系列文件就地修改。术语遵循"首次出现给中英对照"规则；作者姓名保留英文/拼音，作者区机构名只保留中文译名，描述性方法名也翻译；专有模型名（GPT-4、LLaMA…）和数据集名（ImageNet、MMLU…）保留英文。翻译完用 `scripts/inspect_tex.py` 扫一遍漏译。
-4. **编译** —— `scripts/compile.py` 默认 `--engine auto`：本地有 `xelatex` 就走本地，否则回落到在线编译。中文 PDF 直接放到输出目录、文件名就是中文 `\title{}`。
+4. **编译** —— `scripts/compile.py` 默认 `--engine auto`：本地有 `xelatex` 就走本地，否则回落到在线编译。中文 PDF 直接放到输出目录，文件名按 `{方法名}_{中文标题}` 命名。
 
-最终交付（每篇论文一个独立目录 `<arXiv-ID>-<中文标题>/`，中英两份 PDF 并列）：
+最终交付（每篇论文一个独立目录 `<arXiv-ID>-<方法名>_<中文标题>/`，中英两份 PDF 并列）：
 
-- `<中文标题>.pdf` —— 中文译文
+> 目录名统一包含方法名：标题自带就用标题里的；标题没有但正文/代码有正式名就用正式名；都没有才用社区名或用户别名。别名不写进目录名，记在 `naming.json` 的 `method_source`。
+
+- `<方法名>_<中文标题>.pdf` —— 中文译文
 - `<英文标题>.pdf` —— 英文原文（arXiv 官方 PDF；个别取不到时回落本地编译英文源码）
 - `source/` —— 英文原文 `.tex` + `_zh.tex` 译稿，方便对照、手动重编
+- `naming.json` —— 方法名及其来源（`title` / `paper` / `code` / `community` / `user_alias`）
 
 ---
 
@@ -139,7 +142,7 @@ python3 chinesexiv/scripts/compile.py <work_dir> <main_tex> <output.pdf> --engin
 | **描述性方法名** | 保留不翻 | **改为必翻**，按首次出现规则给出中英对照 |
 | **CJK 栈** | LuaLaTeX + luatexja | XeLaTeX + xeCJK + Noto Serif CJK SC，注入额外的行距 1.25 与中英文间距 |
 | **质检** | `inspect_tex.py` body 模式 | 默认 `full` 模式扫全文，扫描 `_zh.tex` |
-| **输出命名** | 主文件名 | 翻译后的 `\title{}` 自然命名 |
+| **输出命名** | 主文件名 | `{方法名}_{中文标题}`；方法名来源记入 `naming.json` |
 | **清理** | 删 `.tmp_arxiv` | 保留 `_zh.tex` 源码 + 删本地 `build/` 中间产物，方便手动重编 |
 
 ---
