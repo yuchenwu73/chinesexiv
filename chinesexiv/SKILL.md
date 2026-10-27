@@ -64,7 +64,7 @@ python3 {SKILL_DIR}/scripts/download.py "{PAPER_ID}" "$OUTPUT_DIR/source"
 1. **标题自带**：论文标题里已有专有方法名/系统名/产品名（如 `RS-OPSD: ...`、`ViCuR: ...`、`HydroAgent: ...`）→ 原样保留大小写与连字符。
 2. **正文/算法/代码有正式名**：标题没有，但方法节、算法框、官方代码库或项目页给出正式名称（如 `ViGOS`、`CounterCredit`）→ 用该名称。
 3. **社区通用名**：作者没有给正式名，但同领域论文/代码普遍这样叫 → 用通用名。
-4. **确实没有名称**：用户已指定就用用户的；否则由模型起一个简短别名，记为 `user_alias`。
+4. **确实没有名称**：若标题/正文已有自然昵称（如 `Asking like Socrates` → `Socrates`），用该昵称并记 `user_alias`；若是综述、立场文章、基准报告等本来就没有方法名的，**不要硬造**，记 `method_name: null`、`method_source: "none"`，目录保持 `{paperid}-{中文标题}`。
 
 **来源记录**：在 `$OUTPUT_DIR/naming.json` 写入：
 
@@ -79,7 +79,7 @@ python3 {SKILL_DIR}/scripts/download.py "{PAPER_ID}" "$OUTPUT_DIR/source"
 }
 ```
 
-`method_source` 取值：`title`（标题里就有）、`paper`（正文/算法给出）、`code`（官方代码库/项目页）、`community`（社区通用）、`user_alias`（用户或模型自拟的别名）。
+`method_source` 取值：`title`（标题里就有）、`paper`（正文/算法给出）、`code`（官方代码库/项目页）、`community`（社区通用）、`user_alias`（用户或模型自拟的别名）、`none`（综述/立场/基准等本来就没有方法名，目录不带方法名）。
 
 **不要在目录名里加 `[别名]`、`(自定义)`、`~` 等标记**：目录名保持干净、可被 shell/URL/Git 安全引用；来源查 `naming.json`。若必须让人一眼看出是别名，在 `docs` 索引表里加「方法名来源」列，而不是改目录名。
 

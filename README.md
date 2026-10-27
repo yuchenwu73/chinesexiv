@@ -66,12 +66,12 @@ Agent 会按本 Skill 里的四步流程跑：
 
 最终交付（每篇论文一个独立目录 `<arXiv-ID>-<方法名>_<中文标题>/`，中英两份 PDF 并列）：
 
-> 目录名统一包含方法名：标题自带就用标题里的；标题没有但正文/代码有正式名就用正式名；都没有才用社区名或用户别名。别名不写进目录名，记在 `naming.json` 的 `method_source`。
+> 目录名统一包含方法名：标题自带就用标题里的；标题没有但正文/代码有正式名就用正式名；有自然昵称才用别名；综述、立场文章、基准报告等本来没有方法名的，保持 `ID-中文标题`，在 `naming.json` 记 `method_source: none`。别名不写进目录名。
 
 - `<方法名>_<中文标题>.pdf` —— 中文译文
 - `<英文标题>.pdf` —— 英文原文（arXiv 官方 PDF；个别取不到时回落本地编译英文源码）
 - `source/` —— 英文原文 `.tex` + `_zh.tex` 译稿，方便对照、手动重编
-- `naming.json` —— 方法名及其来源（`title` / `paper` / `code` / `community` / `user_alias`）
+- `naming.json` —— 方法名及其来源（`title` / `paper` / `code` / `community` / `user_alias` / `none`）
 
 ---
 
