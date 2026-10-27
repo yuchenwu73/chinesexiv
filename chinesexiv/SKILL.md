@@ -32,7 +32,7 @@ python3 {SKILL_DIR}/scripts/download.py "{PAPER_ID}" "$OUTPUT_DIR/source"
 
 ### `OUTPUT_DIR` 的命名约定
 
-用户通常给出**父目录**（例如 `~/papers`、`~/projects/paper-reading`）。约定每篇论文落在一个**独立子目录**下，命名为 `{paperid}-{方法名}_{中文副标题}`，目录里**同时**放英文原文 PDF 与中文译文 PDF：
+用户通常给出**父目录**（例如 `~/papers`、`~/projects/paper-reading`）。约定每篇论文落在一个**独立子目录**下，命名为 `{paperid}-{短名}_{中文副标题}`，目录里**同时**放英文原文 PDF 与中文译文 PDF：
 
 ```
 ~/projects/paper-reading/
@@ -49,7 +49,7 @@ python3 {SKILL_DIR}/scripts/download.py "{PAPER_ID}" "$OUTPUT_DIR/source"
 由于中文标题在翻译完成前不可知，按下列两阶段处理：
 
 1. **下载阶段**：先用 `$OUTPUT_DIR = $PARENT/$PAPER_ID` 占位（**只用 arXiv ID，无标题后缀**）。
-2. **翻译完成、确定 `\title{}` 中文标题后**：把整个目录从 `$PARENT/$PAPER_ID` 重命名为 `$PARENT/$PAPER_ID-$PDF_NAME_ZH`，再调用 `compile.py` 把 PDF 写到新目录里。`$PDF_NAME_ZH` **不是** `\title{}` 的原样，而是 `{方法名}_{中文副标题}`：把 `\title{}` 里的全角 `：` 替换为 `_`；若标题不带方法名，按下方「方法名规则」补上方法名前缀（标题已以方法名开头时不要重复），例如 `\title{HydroAgent：基于模拟器驱动……}` → `$PDF_NAME_ZH=HydroAgent_基于模拟器驱动……`。
+2. **翻译完成、确定 `\title{}` 中文标题后**：把整个目录从 `$PARENT/$PAPER_ID` 重命名为 `$PARENT/$PAPER_ID-$PDF_NAME_ZH`，再调用 `compile.py` 把 PDF 写到新目录里。`$PDF_NAME_ZH` **不是** `\title{}` 的原样，而是 `{短名}_{中文副标题}`：把 `\title{}` 里的全角 `：` 替换为 `_`；若标题不带短名，按下方「短名规则」补上短名前缀（标题已以短名开头时不要重复），例如 `\title{HydroAgent：基于模拟器驱动……}` → `$PDF_NAME_ZH=HydroAgent_基于模拟器驱动……`。
 
    ```bash
    mv "$PARENT/$PAPER_ID" "$PARENT/$PAPER_ID-$PDF_NAME_ZH"
@@ -57,40 +57,41 @@ python3 {SKILL_DIR}/scripts/download.py "{PAPER_ID}" "$OUTPUT_DIR/source"
    WORK_DIR="$OUTPUT_DIR/source"
    ```
 
-#### 方法名规则（所有论文统一）
+#### 短名规则（所有论文统一）
 
-目录名统一为 `{paperid}-{方法名}_{中文副标题}`。方法名按下列顺序确定，**不要只根据标题里有没有冒号来判断**：
+目录名统一为 `{paperid}-{短名}_{中文副标题}`。短名是论文的短标识，不一定是方法名；按下列顺序确定，**不要只根据标题里有没有冒号来判断**：
 
-1. **标题自带**：论文标题里已有专有方法名/系统名/产品名（如 `RS-OPSD: ...`、`ViCuR: ...`、`HydroAgent: ...`）→ 原样保留大小写与连字符。
-2. **正文/算法/代码有正式名**：标题没有，但方法节、算法框、官方代码库或项目页给出正式名称（如 `ViGOS`、`CounterCredit`）→ 用该名称。
-3. **社区通用名**：作者没有给正式名，但同领域论文/代码普遍这样叫 → 用通用名。
-4. **确实没有名称**：**不要由模型自造别名**。先问用户「这篇没有正式方法名，要不要起一个短别名？」：
-   - 用户说要：用用户给的名字；用户让你提，就提 2–3 个候选让用户选，选定后记 `user_alias`。
-   - 用户说不要：记 `method_name: null`、`method_source: "none"`，目录保持 `{paperid}-{中文标题}`。
-   综述、立场文章、技术报告（无命名模型/系统）、纯基准报告、纯实证研究都先走这一步。
+1. **标题自带的方法/系统名**：如 `RS-OPSD: ...`、`ViCuR: ...`、`HydroAgent: ...` → 原样保留大小写与连字符。
+2. **正文/算法/代码里的正式方法名**：标题没有，但方法节、算法框、官方代码库或项目页给出正式名称（如 `ViGOS`、`CounterCredit`）→ 用该名称。
+3. **模型/系统名或基准名**：论文主体是模型/系统（`Qwen3`、`InternVL3.5`、`GeoLens`）或提出基准（`DORA`、`GeoMMBench`）→ 用该名称，`name_type` 记 `model` 或 `benchmark`。
+4. **综述/报告/分析/立场标签**：论文没有方法名，但需要一个短标识帮助识别 → **先问用户**「要不要起一个短别名？」，并给 2–3 个候选；用户同意才用，`name_type` 记 `survey` / `report` / `analysis` / `position`，`name_source` 记 `user_alias`。用户不同意 → 不设短名。
+5. **确实没有短名**：`short_name: null`、`name_source: "none"`，目录保持 `{paperid}-{中文标题}`。
 
 **来源记录**：在 `$OUTPUT_DIR/naming.json` 写入：
 
 ```json
 {
-  "paper_id": "2609.27307",
-  "method_name": "GUI-SD-v2",
-  "method_source": "paper",
-  "title_en": "Learn How to Act from Your Own Interactions: On-Policy Self-Distillation for GUI Agents",
-  "title_zh": "从自身交互中学习如何行动",
-  "dir_name": "2609.27307-GUI-SD-v2_从自身交互中学习如何行动"
+  "paper_id": "2608.18271",
+  "short_name": "Rethinking-PI",
+  "name_type": "analysis",
+  "name_source": "user_alias",
+  "title_en": "Rethinking Privileged Information in On-Policy Self-Distillation",
+  "title_zh": "重新审视在策略自蒸馏中的特权信息",
+  "dir_name": "2608.18271-Rethinking-PI_重新审视在策略自蒸馏中的特权信息"
 }
 ```
 
-`method_source` 取值：`title`（标题里就有）、`paper`（正文/算法/模型名给出）、`code`（官方代码库/项目页）、`community`（领域内已通用的正式称呼，不得自造）、`user_alias`（用户确认的别名；模型不得自造，须先征求同意）、`none`（综述/立场/技术报告/纯基准/纯实证等本来就没有命名方法，目录不带方法名）。
+`name_type` 取值：`method`（方法）、`model`（模型/系统）、`benchmark`（基准）、`survey`（综述）、`report`（技术报告/配方/资源报告）、`analysis`（分析）、`position`（立场文章）、`alias`（其他短标识）。
 
-**不要在目录名里加 `[别名]`、`(自定义)`、`~` 等标记**：目录名保持干净、可被 shell/URL/Git 安全引用；来源查 `naming.json`。若必须让人一眼看出是别名，在 `docs` 索引表里加「方法名来源」列，而不是改目录名。
+`name_source` 取值：`title`（标题里就有）、`paper`（正文/算法/模型名给出）、`code`（官方代码库/项目页）、`community`（领域内已通用的正式称呼，不得自造）、`user_alias`（用户确认的别名；模型不得自造，须先征求同意）、`none`（没有短名）。
 
-**标题与方法名的关系**：
+**不要在目录名里加 `[别名]`、`(自定义)`、`~` 等标记**：目录名保持干净、可被 shell/URL/Git 安全引用；来源查 `naming.json`。若必须让人一眼看出是别名，在 `docs` 索引表里加「短名来源/类型」列，而不是改目录名。
+
+**标题与短名的关系**：
 - `\title{}` 仍按原规则翻成自然中文题名；标题自带方法名时保留 `方法名：副标题`。
-- 文件系统名用 `方法名_中文副标题`；若 `\title{}` 已以方法名开头，只写一次，避免 `GUI-SD_GUI-SD_...`。
-- 标题没有方法名时，`\title{}` 不变；只在目录/PDF 文件名前补 `方法名_`。
-- 已有目录补方法名时，同步更新引用它的索引/台账（如 `docs/CVPR2027_相关工作汇总*.md`、`docs/video_tools/manifest.json`）。
+- 文件系统名用 `短名_中文副标题`；若 `\title{}` 已以短名开头，只写一次，避免 `GUI-SD_GUI-SD_...`。
+- 标题没有短名时，`\title{}` 不变；只在目录/PDF 文件名前补 `短名_`。
+- 已有目录补短名时，同步更新引用它的索引/台账（如 `docs/CVPR2027_相关工作汇总*.md`、`docs/video_tools/manifest.json`）。
 
 若用户只翻一篇论文，没有「父目录」语义（例如直接说「放到 `~/Desktop`」），保持 `$OUTPUT_DIR = ~/Desktop/$PAPER_ID-$PDF_NAME_ZH` 即可。**不要把多篇论文的 `source/` 直接堆在同一个父目录里**——会互相覆盖。
 
@@ -161,7 +162,7 @@ PDF_EN=<已下载的英文 PDF 绝对路径；若没下到则为空字符串>
   - 内层 `_`：英文方法名 ↔ 中文副标题，**替换 `\title{}` 中的全角 `：`**，例如 `HydroAgent_基于模拟器驱动…`
   - 完整范例：`2605.17792-HydroAgent_基于模拟器驱动强化学习缩小前沿LLM与人类专家在水文模型率定中的差距/` 内含同名 `.pdf`。
   - 两层分隔的目的是视觉上区分语义层级（ID/方法名/副标题）；全用 `-` 会出现 `ID-Method-Subtitle` 三段同形分隔，边界不清。`_` 与 `-` 都全平台安全。
-  - 若原标题**没有**专有方法名前缀，仍按「方法名规则」补一个方法名；只有确实无法命名（且用户同意）才退回 `$PAPER_ID-$PDF_NAME_ZH`，并在 `naming.json` 记为 `user_alias`。
+  - 若原标题**没有**专有方法名前缀，仍按「短名规则」确定短名；没有正式名时先问用户是否起别名，用户拒绝则退回 `$PAPER_ID-$PDF_NAME_ZH` 并记 `name_source: "none"`。
 - **多篇处理：** 多篇论文可以分别处理；只有在用户**明确要求**并行委派时，才开启多个 subagent，否则直接顺序完成。
 
 译后必须做自检（默认 full 模式扫描全文，扫描的是中文翻译目标文件）：
@@ -185,7 +186,7 @@ python3 {SKILL_DIR}/scripts/inspect_tex.py scan "$WORK_DIR" "$MAIN_TEX_ZH" body
 
 ## 第四步：编译与清理
 
-**目录最终命名**：在编译前，按第二步的命名约定，把 `$OUTPUT_DIR` 从 `$PARENT/$PAPER_ID` 重命名为 `$PARENT/$PAPER_ID-$PDF_NAME_ZH`，使整篇论文（含 `source/` 子目录、第二步已下载的英文原文 PDF）都落在最终目录里。`$PDF_NAME_ZH` = `{方法名}_{中文副标题}`，基于翻译后的 `\title{}` 并按「方法名规则」补前缀；标题已带方法名时不重复。最终中文 PDF 直接落在 `$OUTPUT_DIR/$PDF_NAME_ZH.pdf`，与 `source/`、英文原文 PDF 同级。第二步下载的 `$PDF_NAME_EN.pdf` 在 `$OUTPUT_DIR` 内，整体 `mv` 时会自动跟着搬到最终目录，无需单独处理。
+**目录最终命名**：在编译前，按第二步的命名约定，把 `$OUTPUT_DIR` 从 `$PARENT/$PAPER_ID` 重命名为 `$PARENT/$PAPER_ID-$PDF_NAME_ZH`，使整篇论文（含 `source/` 子目录、第二步已下载的英文原文 PDF）都落在最终目录里。`$PDF_NAME_ZH` = `{短名}_{中文副标题}`，基于翻译后的 `\title{}` 并按「短名规则」补前缀；标题已带短名时不重复。最终中文 PDF 直接落在 `$OUTPUT_DIR/$PDF_NAME_ZH.pdf`，与 `source/`、英文原文 PDF 同级。第二步下载的 `$PDF_NAME_EN.pdf` 在 `$OUTPUT_DIR` 内，整体 `mv` 时会自动跟着搬到最终目录，无需单独处理。
 
 ```bash
 python3 {SKILL_DIR}/scripts/compile.py "$WORK_DIR" "$MAIN_TEX_ZH" "$OUTPUT_DIR/$PDF_NAME_ZH.pdf" --engine auto
