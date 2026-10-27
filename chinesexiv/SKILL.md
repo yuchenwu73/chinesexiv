@@ -72,7 +72,7 @@ python3 {SKILL_DIR}/scripts/download.py "{PAPER_ID}" "$OUTPUT_DIR/source"
 {
   "paper_id": "2609.27307",
   "method_name": "GUI-SD-v2",
-  "method_source": "user_alias",
+  "method_source": "paper",
   "title_en": "Learn How to Act from Your Own Interactions: On-Policy Self-Distillation for GUI Agents",
   "title_zh": "从自身交互中学习如何行动",
   "dir_name": "2609.27307-GUI-SD-v2_从自身交互中学习如何行动"
