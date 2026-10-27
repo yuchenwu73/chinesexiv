@@ -87,6 +87,10 @@ python3 {SKILL_DIR}/scripts/download.py "{PAPER_ID}" "$OUTPUT_DIR/source"
 
 **不要在目录名里加 `[别名]`、`(自定义)`、`~` 等标记**：目录名保持干净、可被 shell/URL/Git 安全引用；来源查 `naming.json`。若必须让人一眼看出是别名，在 `docs` 索引表里加「短名来源/类型」列，而不是改目录名。
 
+**不要加类型前缀**：目录名里不写 `[方法]`、`[综述]`、`[报告]` 等标记；类型只记在 `naming.json` 的 `name_type`。想让人一眼看出类型，用短名后缀（`-Survey`、`-Report`、`-Analysis`、`-Position`），不要加前缀。
+
+**无 arXiv ID 的博客/官方报告**：目录用 `{短名}_{中文标题}`，`paper_id` 记 `blog-<短名>` 或 `official-<短名>`，`name_type` 记 `report`。
+
 **标题与短名的关系**：
 - `\title{}` 仍按原规则翻成自然中文题名；标题自带方法名时保留 `方法名：副标题`。
 - 文件系统名用 `短名_中文副标题`；若 `\title{}` 已以短名开头，只写一次，避免 `GUI-SD_GUI-SD_...`。
