@@ -1,3 +1,5 @@
+
+
 # ChineseXiv
 
 > arXiv 论文一键变中文 PDF —— 一个 Claude Code / Codex 通用 Skill。
@@ -20,10 +22,10 @@
    git clone https://github.com/yuchenwu73/chinesexiv.git
    ```
 
-2. 打开 Claude Code / Codex / Cursor 对话，把仓库里的 `chinesexiv/` 目录路径告诉 Agent：
+2. 打开 Claude Code / Codex / Cursor 对话，把仓库里的 `chinesexiv/chinesexiv/` 目录路径告诉 Agent：
 
    ```text
-   路径 <绝对路径>/chinesexiv 中定义了一个 Skill，请你阅读并安装到你的 skills 目录下。
+   路径 <绝对路径>/chinesexiv/chinesexiv 中定义了一个 Skill，请你阅读并安装到你的 skills 目录下。
    ```
 
    Claude Code 会装到 `~/.claude/skills/chinesexiv/`，Codex 会装到 `~/.codex/skills/chinesexiv/`。
